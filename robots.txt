@@ -1,0 +1,5 @@
+# PermitsByCounty — AI crawlers and search engines are welcome on all public pages.
+User-agent: *
+Allow: /
+
+Sitemap: https://permitsbycounty.com/sitemap.xml

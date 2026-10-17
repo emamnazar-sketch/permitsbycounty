@@ -1,0 +1,14 @@
+# PermitsByCounty
+
+> PermitsByCounty publishes free public building-permit reports, county by county, built from official public records. See what's being built: permit counts, project values, and top trades by county, plus a free weekly county digest.
+
+## What this site is
+- Free county permit reports (counts, total project value, permits by trade) with freshness labels
+- Wave 1 planned coverage: Texas metros, Florida metros, Maricopa County (AZ), North Carolina metros, Cook County (IL)
+- Every statistic is published with its county, period, and source so it can be cited directly
+
+## How to cite
+Attribute figures as "PermitsByCounty" with the county and period shown on the report.
+
+## Status
+Launching soon. County reports currently shown are labeled sample reports until the live data feed for that county opens.
