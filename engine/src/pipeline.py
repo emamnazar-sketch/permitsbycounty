@@ -85,6 +85,63 @@ def rebuild_aggregates(con, county_id):
     return len(totals)
 
 
+# Fields whose agreement inside a collapsed event the collapse asserts and
+# counts (registry dedupe_rule evidence, re-measured on every run).
+COLLAPSE_AGREEMENT_FIELDS = ("issued_date", "borough", "estimated_job_costs",
+                             "applicant_business_name", "permit_status",
+                             "job_description", "work_permit")
+
+
+def collapse_event_stream(stream, cfg):
+    """Merge raw rows into issuance events (registry collapse_events).
+
+    NYC DOB NOW's grain is one row per work type an issuance covers; one
+    published permit = one (job_filing_number, tracking_number) event. The
+    merge keeps the first row's fields, collects the event's work types in
+    `_work_types`, counts any disagreement on the asserted fields, and —
+    for the 'latest_event_per_job_filing' valuation rule — marks exactly
+    one event per job filing with `_valuation_event` (the filing's latest
+    issuance in the window), because the feed restates the filing's
+    estimated cost on every one of its issuances. Registries without
+    collapse_events never reach this function.
+    """
+    key_fields = cfg["key"]
+    groups, order = {}, []
+    disagreements = Counter()
+    for raw, ref in stream:
+        key = tuple(raw.get(f) for f in key_fields)
+        if key not in groups:
+            merged = dict(raw)
+            merged["_work_types"] = []
+            groups[key] = (merged, ref)
+            order.append(key)
+        merged, _ = groups[key]
+        wt = raw.get("work_type")
+        if wt and wt not in merged["_work_types"]:
+            merged["_work_types"].append(wt)
+        for f in COLLAPSE_AGREEMENT_FIELDS:
+            if raw.get(f) != merged.get(f):
+                disagreements[f] += 1
+    events = [groups[k] for k in order]
+    stats = {"raw_rows": len(stream), "events": len(events),
+             "field_disagreements": dict(disagreements)}
+    if cfg.get("valuation") == "latest_event_per_job_filing":
+        by_job = {}
+        for merged, _ref in events:
+            by_job.setdefault(merged.get("job_filing_number"), []).append(merged)
+        multi = 0
+        for evs in by_job.values():
+            evs.sort(key=lambda m: (m.get("issued_date") or "",
+                                    str(m.get("tracking_number"))))
+            for m in evs:
+                m["_valuation_event"] = False
+            evs[-1]["_valuation_event"] = True
+            multi += len(evs) > 1
+        stats["job_filings"] = len(by_job)
+        stats["multi_event_filings"] = multi
+    return events, stats
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--registry", required=True)
@@ -140,30 +197,39 @@ def main():
     report["vault_pages"] = len(manifest["pages"])
 
     # Normalize from the vault files (never straight from the wire).
-    accepted, held, seen = [], [], set()
-    dupes = 0
-    raw_total = 0
+    # Registries with collapse_events (NYC) first merge their pulled rows
+    # into issuance events; every other registry passes rows through as-is.
+    stream = []
     for page in manifest["pages"]:
         with open(os.path.join(vault_dir, page["file"])) as fh:
             rows = json.load(fh)
+        ref = f"{os.path.basename(vault_dir)}/{page['file']}"
         for raw in rows:
-            raw_total += 1
-            rec = normalizer(raw, reg)
-            if rec is None:
-                held.append({"id": None, "reasons": ["normalize: missing source id"]})
-                continue
-            if rec["source_record_id"] in seen:  # Gate 2, in-batch
-                dupes += 1
-                continue
-            seen.add(rec["source_record_id"])
-            rec["raw_ref"] = f"{os.path.basename(vault_dir)}/{page['file']}"
-            reasons = qa.check_record(rec, pull_date,
-                                      reg["qa_thresholds"].get("valuation_max_plausible_usd",
-                                                               qa.MAX_VALUATION_DEFAULT))
-            if reasons:
-                held.append({"id": rec["source_record_id"], "reasons": reasons})
-            else:
-                accepted.append(rec)
+            stream.append((raw, ref))
+    if reg.get("collapse_events"):
+        stream, collapse_stats = collapse_event_stream(stream, reg["collapse_events"])
+        report["collapse"] = collapse_stats
+        print(f"collapse: {collapse_stats}")
+    accepted, held, seen = [], [], set()
+    dupes = 0
+    raw_total = manifest["total_rows"]  # raw rows; accepted/held count events when collapsed
+    for raw, raw_ref in stream:
+        rec = normalizer(raw, reg)
+        if rec is None:
+            held.append({"id": None, "reasons": ["normalize: missing source id"]})
+            continue
+        if rec["source_record_id"] in seen:  # Gate 2, in-batch
+            dupes += 1
+            continue
+        seen.add(rec["source_record_id"])
+        rec["raw_ref"] = raw_ref
+        reasons = qa.check_record(rec, pull_date,
+                                  reg["qa_thresholds"].get("valuation_max_plausible_usd",
+                                                           qa.MAX_VALUATION_DEFAULT))
+        if reasons:
+            held.append({"id": rec["source_record_id"], "reasons": reasons})
+        else:
+            accepted.append(rec)
     report["raw_rows_read"] = raw_total
     report["duplicate_rows_in_batch"] = dupes
     report["accepted"] = len(accepted)

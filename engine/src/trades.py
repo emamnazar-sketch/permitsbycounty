@@ -98,6 +98,56 @@ def classify_seattle_trade(type_mapped="", type_desc="", description=""):
     return "general"
 
 
+import re
+
+_NUMWORD = (r"(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|"
+            r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
+            r"eighteen|nineteen|twenty)")
+# NB signal = "new building", "new NB", or "new <number> story" (number as
+# digits or a word, optional parenthetical: "NEW SIX (6) STORY BUILDING").
+# The bare phrase "new construction" is deliberately NOT a signal: DOB
+# descriptions use it for construction fences, demolition prep, and
+# interior fit-outs (verified against loaded data, 2026-10-18).
+_NEW_BUILDING_RE = re.compile(
+    r"new\s+(?:building|nb\b|" + _NUMWORD +
+    r"(?:\s*\([^)]*\))?\s*-?\s*(?:story|storey|stories))|proposed\s+nb\b")
+
+
+def classify_nyc_trade(work_types=(), description=""):
+    """New York City (data.cityofnewyork.us rbx6-tga4, DOB NOW) trade
+    classification. Input is the issuance event's SET of DOB work types —
+    DOB NOW records one row per work type an issuance covers, and the
+    pipeline collapses those rows into one permit before classification
+    (registry dedupe_rule). DOB work types are themselves trade-bearing
+    (Plumbing, Mechanical Systems, Solar, Sign...), so the primary trade is
+    chosen by precedence: the most specific trade named wins over the
+    general-construction cluster. DOB NOW excludes electrical, elevator,
+    and limited-alteration permits entirely (separate datasets), so no
+    electrical rule exists here. Deterministic; first match wins; events
+    no rule claims land in 'general' and are counted in the run report.
+    Kept separate so other counties cannot be disturbed.
+    """
+    t = {str(w).strip() for w in (work_types or ()) if w}
+    d = (description or "").lower()
+    if "Full Demolition" in t:
+        return "demolition"
+    if _NEW_BUILDING_RE.search(d):
+        return "new-construction"
+    if "Plumbing" in t:
+        return "plumbing"
+    if "Mechanical Systems" in t or "Boiler Equipment" in t:
+        return "hvac"
+    if "Solar" in t:
+        return "solar"
+    if "Sprinklers" in t or "Standpipe" in t:
+        return "fire-protection"
+    if "Sign" in t:
+        return "signage"
+    if t & {"Sidewalk Shed", "Supported Scaffold", "Suspended Scaffold"}:
+        return "scaffolding"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

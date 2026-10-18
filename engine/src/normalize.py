@@ -4,7 +4,15 @@ Privacy rule (SOP section 3 rule 1) is enforced HERE, at the only door data
 enters through: person-name fields are never copied. Chicago: only contacts
 whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
-from trades import classify_trade, classify_sf_trade, classify_seattle_trade
+import re
+
+from trades import (classify_trade, classify_nyc_trade, classify_sf_trade,
+                    classify_seattle_trade)
+
+# A real DOB job filing number: borough letter + 8 digits + filing iteration
+# (measured: 125,096 of 125,097 distinct window values; the one exception is
+# the feed's placeholder text — see normalize_nyc).
+_JOB_NUMBER_RE = re.compile(r"^[A-Z]\d{8}-[A-Z]\d+$")
 
 
 def _clean(v):
@@ -259,7 +267,76 @@ def normalize_seattle(raw, reg):
     }
 
 
+def normalize_nyc(raw, reg):
+    """One collapsed NYC DOB NOW issuance event -> standard record dict.
+
+    Input is NOT a raw feed row: the pipeline's collapse step (registry
+    collapse_events) has already merged the event's per-work-type rows into
+    one dict carrying `_work_types` (the issuance's work types) and
+    `_valuation_event` (True only for the filing's latest issuance in the
+    window). Identity (registry dedupe_rule): one permit = one
+    (job_filing_number, tracking_number) issuance event; permit_number is
+    the work_permit slot number, which recurs across the slot's issuances.
+    Privacy: the pull is column-restricted by the registry pull_select —
+    applicant person-name fields, filing-representative fields, and owner
+    fields are never requested from the API at all. The only name carried
+    is applicant_business_name, the permittee's published BUSINESS name
+    (the dataset separates it from the applicant's person-name fields).
+    Valuation (registry field_map.valuation): estimated_job_costs is a
+    job-filing figure restated on every issuance of the filing, so it is
+    stored only on the filing's latest issuance in the window and NULL on
+    the earlier ones — each filing's cost is counted exactly once.
+    """
+    job = _clean(raw.get("job_filing_number"))
+    tracking = _clean(raw.get("tracking_number"))
+    if not job or not tracking or not _JOB_NUMBER_RE.match(job):
+        # No real source identity: the feed's placeholder job number
+        # ('Permit is no', work_permit 'Permit is not yet issued') names 4
+        # window events. Held, reported, never published (registry rule).
+        return None
+    parts = [_clean(raw.get("house_no")), _clean(raw.get("street_name"))]
+    address = " ".join(p for p in parts if p)
+    address = " ".join(address.split())  # source pads some street names
+    if address and address.isupper():
+        address = _title(address)
+    address = address or None
+    contractor = _clean(raw.get("applicant_business_name"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("permit_status"))
+    status = reg["status_map"].get(status_src, "not-stated") if status_src else "not-stated"
+    work_types = [str(w).strip() for w in raw.get("_work_types", []) if w]
+    valuation = _num(raw.get("estimated_job_costs")) if raw.get("_valuation_event") else None
+    return {
+        "source_record_id": f"{job}|{tracking}",
+        "permit_number": _clean(raw.get("work_permit")),
+        "address": address,
+        "city": reg["borough_pull"]["borough_variants"][0],
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zip_code")),
+        "permit_type": "; ".join(work_types) or None,
+        "trade": classify_nyc_trade(work_types, raw.get("job_description")),
+        "category": None,  # source publishes no residential/commercial class; honest NULL
+        "project_description": _clean(raw.get("job_description")),
+        "valuation": valuation,
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("approved_date")),
+        "issue_date": _date(raw.get("issued_date")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
-               "seattle-king-wa": normalize_seattle}
+               "seattle-king-wa": normalize_seattle,
+               "nyc-new-york-ny": normalize_nyc,
+               "nyc-kings-ny": normalize_nyc,
+               "nyc-queens-ny": normalize_nyc,
+               "nyc-bronx-ny": normalize_nyc,
+               "nyc-richmond-ny": normalize_nyc}

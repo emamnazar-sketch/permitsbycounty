@@ -53,6 +53,9 @@ TRADE_LABELS = {
     "signage": "Signage", "new-construction": "New Construction",
     "fire-alarm": "Fire Alarm", "elevator": "Elevator",
     "fencing": "Fencing", "demolition": "Demolition", "general": "General & Other",
+    # NYC DOB NOW trades (scaffolding incl. sidewalk sheds is a first-class
+    # NYC filing type; sprinklers/standpipe file as fire protection).
+    "scaffolding": "Scaffolding", "fire-protection": "Fire Protection",
 }
 
 CFG = {
@@ -157,6 +160,159 @@ CFG = {
                      'City of Austin feed totals for the Travis County report, labeled as such, '
                      'never blended with other jurisdictions\' records. County-wide coverage is '
                      'not implied.</p>'),
+    },
+    # New York City: one citywide DOB NOW feed, five boroughs = five
+    # counties = five county reports (decision + evidence in the NYC
+    # registries' dedupe_rule / coverage_note, PROGRESS.md session 5).
+    # Values publish under the per-filing attribution rule (each filing's
+    # stated estimated cost counted once, on its latest issuance in the
+    # window) — the rule and its verification are in the registries and on
+    # the Data Sources page. DOB NOW publishes no res/comm class: no
+    # category figures. DOB NOW excludes electrical/elevator/LAA permits.
+    "ny/new-york": {
+        "registry": "nyc-new-york-ny",
+        "state_name": "New York", "state_abbr": "NY",
+        "county_name": "New York County", "crumb_county": "New York County, New York",
+        "h1": "Building Permits in New York County (Manhattan), New York",
+        "city": "Manhattan",
+        "source_short": "NYC Department of Buildings",
+        "source_line": "New York City open data — DOB NOW: Build, approved permits (NYC Department of Buildings)",
+        "creator": "New York City Department of Buildings",
+        "cite_place": "New York County (Manhattan)",
+        "noun": "building permits", "noun_singular": "building permit",
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the New York City Department of Buildings "
+                     "in Manhattan — counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>New York City Department of Buildings (DOB NOW)</strong> in '
+                     '<strong>Manhattan (New York County)</strong>. The city\'s other boroughs publish '
+                     'as their own county reports: <a href="/ny/kings/">Kings County (Brooklyn)</a>, '
+                     '<a href="/ny/queens/">Queens County</a>, <a href="/ny/bronx/">Bronx County</a>, '
+                     'and <a href="/ny/richmond/">Richmond County (Staten Island)</a>. Two counting '
+                     'rules matter here. DOB\'s feed lists one row for every work type an issuance '
+                     'covers, so we count each issuance <strong>once</strong>. And the estimated cost '
+                     'DOB publishes belongs to the whole job filing and repeats on each of its '
+                     'issuances, so we count each filing\'s cost <strong>once</strong>, on its most '
+                     'recent issuance. DOB NOW excludes electrical, elevator, and limited-alteration '
+                     'permits — DOB publishes those in separate datasets — so no electrical figures '
+                     'appear in this report.</p>'),
+    },
+    "ny/kings": {
+        "registry": "nyc-kings-ny",
+        "state_name": "New York", "state_abbr": "NY",
+        "county_name": "Kings County", "crumb_county": "Kings County, New York",
+        "h1": "Building Permits in Kings County (Brooklyn), New York",
+        "city": "Brooklyn",
+        "source_short": "NYC Department of Buildings",
+        "source_line": "New York City open data — DOB NOW: Build, approved permits (NYC Department of Buildings)",
+        "creator": "New York City Department of Buildings",
+        "cite_place": "Kings County (Brooklyn)",
+        "noun": "building permits", "noun_singular": "building permit",
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the New York City Department of Buildings "
+                     "in Brooklyn — counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>New York City Department of Buildings (DOB NOW)</strong> in '
+                     '<strong>Brooklyn (Kings County)</strong>. The city\'s other boroughs publish '
+                     'as their own county reports: <a href="/ny/new-york/">New York County (Manhattan)</a>, '
+                     '<a href="/ny/queens/">Queens County</a>, <a href="/ny/bronx/">Bronx County</a>, '
+                     'and <a href="/ny/richmond/">Richmond County (Staten Island)</a>. Two counting '
+                     'rules matter here. DOB\'s feed lists one row for every work type an issuance '
+                     'covers, so we count each issuance <strong>once</strong>. And the estimated cost '
+                     'DOB publishes belongs to the whole job filing and repeats on each of its '
+                     'issuances, so we count each filing\'s cost <strong>once</strong>, on its most '
+                     'recent issuance. DOB NOW excludes electrical, elevator, and limited-alteration '
+                     'permits — DOB publishes those in separate datasets — so no electrical figures '
+                     'appear in this report.</p>'),
+    },
+    "ny/queens": {
+        "registry": "nyc-queens-ny",
+        "state_name": "New York", "state_abbr": "NY",
+        "county_name": "Queens County", "crumb_county": "Queens County, New York",
+        "h1": "Building Permits in Queens County, New York",
+        "city": "Queens",
+        "source_short": "NYC Department of Buildings",
+        "source_line": "New York City open data — DOB NOW: Build, approved permits (NYC Department of Buildings)",
+        "creator": "New York City Department of Buildings",
+        "cite_place": "Queens County",
+        "noun": "building permits", "noun_singular": "building permit",
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the New York City Department of Buildings "
+                     "in Queens — counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>New York City Department of Buildings (DOB NOW)</strong> in '
+                     '<strong>Queens (Queens County)</strong>. The city\'s other boroughs publish '
+                     'as their own county reports: <a href="/ny/new-york/">New York County (Manhattan)</a>, '
+                     '<a href="/ny/kings/">Kings County (Brooklyn)</a>, <a href="/ny/bronx/">Bronx County</a>, '
+                     'and <a href="/ny/richmond/">Richmond County (Staten Island)</a>. Two counting '
+                     'rules matter here. DOB\'s feed lists one row for every work type an issuance '
+                     'covers, so we count each issuance <strong>once</strong>. And the estimated cost '
+                     'DOB publishes belongs to the whole job filing and repeats on each of its '
+                     'issuances, so we count each filing\'s cost <strong>once</strong>, on its most '
+                     'recent issuance. DOB NOW excludes electrical, elevator, and limited-alteration '
+                     'permits — DOB publishes those in separate datasets — so no electrical figures '
+                     'appear in this report.</p>'),
+    },
+    "ny/bronx": {
+        "registry": "nyc-bronx-ny",
+        "state_name": "New York", "state_abbr": "NY",
+        "county_name": "Bronx County", "crumb_county": "Bronx County, New York",
+        "h1": "Building Permits in Bronx County (the Bronx), New York",
+        "city": "the Bronx",
+        "source_short": "NYC Department of Buildings",
+        "source_line": "New York City open data — DOB NOW: Build, approved permits (NYC Department of Buildings)",
+        "creator": "New York City Department of Buildings",
+        "cite_place": "Bronx County",
+        "noun": "building permits", "noun_singular": "building permit",
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the New York City Department of Buildings "
+                     "in the Bronx — counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>New York City Department of Buildings (DOB NOW)</strong> in '
+                     '<strong>the Bronx (Bronx County)</strong>. The city\'s other boroughs publish '
+                     'as their own county reports: <a href="/ny/new-york/">New York County (Manhattan)</a>, '
+                     '<a href="/ny/kings/">Kings County (Brooklyn)</a>, <a href="/ny/queens/">Queens County</a>, '
+                     'and <a href="/ny/richmond/">Richmond County (Staten Island)</a>. Two counting '
+                     'rules matter here. DOB\'s feed lists one row for every work type an issuance '
+                     'covers, so we count each issuance <strong>once</strong>. And the estimated cost '
+                     'DOB publishes belongs to the whole job filing and repeats on each of its '
+                     'issuances, so we count each filing\'s cost <strong>once</strong>, on its most '
+                     'recent issuance. DOB NOW excludes electrical, elevator, and limited-alteration '
+                     'permits — DOB publishes those in separate datasets — so no electrical figures '
+                     'appear in this report.</p>'),
+    },
+    "ny/richmond": {
+        "registry": "nyc-richmond-ny",
+        "state_name": "New York", "state_abbr": "NY",
+        "county_name": "Richmond County", "crumb_county": "Richmond County, New York",
+        "h1": "Building Permits in Richmond County (Staten Island), New York",
+        "city": "Staten Island",
+        "source_short": "NYC Department of Buildings",
+        "source_line": "New York City open data — DOB NOW: Build, approved permits (NYC Department of Buildings)",
+        "creator": "New York City Department of Buildings",
+        "cite_place": "Richmond County (Staten Island)",
+        "noun": "building permits", "noun_singular": "building permit",
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the New York City Department of Buildings "
+                     "on Staten Island — counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>New York City Department of Buildings (DOB NOW)</strong> on '
+                     '<strong>Staten Island (Richmond County)</strong>. The city\'s other boroughs publish '
+                     'as their own county reports: <a href="/ny/new-york/">New York County (Manhattan)</a>, '
+                     '<a href="/ny/kings/">Kings County (Brooklyn)</a>, <a href="/ny/queens/">Queens County</a>, '
+                     'and <a href="/ny/bronx/">Bronx County</a>. Two counting '
+                     'rules matter here. DOB\'s feed lists one row for every work type an issuance '
+                     'covers, so we count each issuance <strong>once</strong>. And the estimated cost '
+                     'DOB publishes belongs to the whole job filing and repeats on each of its '
+                     'issuances, so we count each filing\'s cost <strong>once</strong>, on its most '
+                     'recent issuance. DOB NOW excludes electrical, elevator, and limited-alteration '
+                     'permits — DOB publishes those in separate datasets — so no electrical figures '
+                     'appear in this report.</p>'),
     },
 }
 

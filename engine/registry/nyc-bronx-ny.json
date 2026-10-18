@@ -1,0 +1,103 @@
+{
+ "api_base": "https://data.cityofnewyork.us/resource/rbx6-tga4.json",
+ "audit_2026_10_18": {
+  "dataset_rows_updated_at": "2026-10-17T18:41:56Z",
+  "total_rows": 1016520,
+  "verdict": "PASS \u2014 identity measured on the full trailing-12-month window before build (174,123 rows -> 147,687 issuance events; see dedupe_rule); dataset updated 2026-10-17 (daily). PHASE1-PLAN secondary list, first in line."
+ },
+ "borough_pull": {
+  "borough_variants": [
+   "Bronx",
+   "BRONX"
+  ],
+  "window_events": 15737,
+  "window_rows": 17828
+ },
+ "collapse_events": {
+  "key": [
+   "job_filing_number",
+   "tracking_number"
+  ],
+  "valuation": "latest_event_per_job_filing"
+ },
+ "county": "Bronx County",
+ "county_fips": "36005",
+ "county_slug": "ny/bronx",
+ "coverage_note": "New York City Department of Buildings (DOB NOW) permits for this borough only. The DOB NOW: Build feed is citywide; each NYC borough is a county and gets its own county report. DOB NOW excludes electrical, elevator, and limited-alteration (LAA) permits, which DOB publishes in separate datasets \u2014 they are not in this feed.",
+ "dataset_id": "rbx6-tga4",
+ "date_onboarded": "2026-10-18",
+ "dedupe_rule": {
+  "definition": "A 'permit' for New York City = one DOB NOW permit ISSUANCE EVENT: one (job_filing_number, tracking_number) pair. The feed's grain is one row per work type an issuance covers, so a single issuance appears as 1-6 rows that agree on every other field; the pipeline collapses those rows into one record whose trade set is the issuance's work types. permit_number = work_permit (the permit slot's public number, e.g. B01241382-I1-GC); the same slot is issued repeatedly over time (initial + renewals), and each issuance is its own permit record \u2014 the same treatment Chicago/Austin records get, where a renewal is a separate issued permit. Identity validity condition: a real DOB job filing number matches [borough letter][8 digits]-[iteration] (125,096 of 125,097 distinct window job numbers). The single exception is the feed's own placeholder text 'Permit is no' (work_permit 'Permit is not yet issued') on 4 window events \u2014 renewals whose filing number DOB did not carry into the feed. With no real source identity they are HELD at normalization, reported, never published.",
+  "measurement_2026_10_18": "Trailing-12-month issue window (issued_date >= 2025-10-17), measured on the full pulled window before build: 174,123 rows -> 147,687 distinct (job_filing_number, tracking_number) events. Every event carries exactly ONE distinct work_permit (147,687 of 147,687), and ZERO events disagree internally on issued_date, permit_status, borough, estimated_job_costs, applicant_business_name, or filing_reason. Rows per event = covered work types (1 for 129,760 events; max 6). Events per work_permit slot: 115,602 slots issued once in the window, max 8 issuances. tracking_number ALONE is not an identity: 51 (tracking_number, work_type) groups window-wide are collisions between unrelated jobs in different boroughs, which is why the key includes job_filing_number. filing_reason mix (events): Initial Permit 95,010 (64.3%), Renewal Without Changes 40,976 (27.7%), Renewal with Changes 10,690 (7.2%), 'No Work Permit' 644 and missing 367 (both carry ordinary issued slots; the counting rule does not depend on the reason label).",
+  "rule": "source_record_id = job_filing_number + '|' + tracking_number. Collapse happens in the pipeline (registry collapse_events) before normalization; the in-batch duplicate gate and the DB upsert key remain as guards.",
+  "valuation_warning": "estimated_job_costs is a JOB-FILING-level figure restated identically on every issuance event of the filing (17,486 of 17,487 multi-event filings state one identical cost on all their events). Summing per event ($58,825,802,894) counts one filing's cost up to 8 times. See field_map.valuation for the per-filing attribution rule that makes values publishable."
+ },
+ "field_map": {
+  "address_parts": [
+   "house_no",
+   "street_name"
+  ],
+  "application_date": "approved_date \u2014 the filing's DOB approval date. This feed publishes no application-submission date; approval is the pre-issuance date DOB reports, carried in the application-date field and labeled as approval in the registry so the mapping is never mistaken for a submission date.",
+  "category": "none \u2014 DOB NOW publishes no residential/commercial class for a permit; honest NULL (SF/Chicago precedent)",
+  "contractor_rule": "applicant_business_name ONLY \u2014 the business name of the licensed professional/permittee of record (permittee_s_license_type is predominantly GC and other licensed trades). The dataset deliberately separates applicant_first_name/middle_name/last_name (the person) from applicant_business_name (the business): the person fields, all filing_representative_* fields, and all owner_* fields (owner_name is a person; owner_business_name is the property owner, not the contractor) are EXCLUDED from pull_select, so they are never requested from the API at all. Business-name coverage: 99.6% of rows all-time; NULL where unpublished, never inferred.",
+  "issue_date": "issued_date",
+  "permit_number": "work_permit \u2014 the permit slot's public number (job number + discipline suffix, e.g. B01241382-I1-GC). A slot recurs across its issuance events (initial + renewals).",
+  "permit_type_source": "the issuance's work types joined (work_type values, e.g. 'General Construction; Plumbing') \u2014 DOB NOW work types are the feed's own permit categories",
+  "project_description": "job_description (constant within an issuance event; first row carried)",
+  "source_record_id": "job_filing_number + '|' + tracking_number (one DOB NOW issuance event \u2014 see dedupe_rule; measured unique on the full window, 2026-10-18)",
+  "status_source": "permit_status (window values: 'Permit Issued', 'Signed-off' only)",
+  "valuation": "estimated_job_costs \u2014 a per-job-filing estimate restated on each of the filing's issuance events. PUBLICATION RULE (measured 2026-10-18): each filing's stated cost is attributed ONCE, to the filing's LATEST issuance event in the window (by issued_date, then tracking_number); the filing's earlier events in the window store NULL. Per-filing totals on that rule: $43,586,788,485 across 125,097 filings window-wide (vs $58,825,802,894 naive per-event). Coverage: all 147,687 events parse numerically; 17,553 events state $0 and 3,319 state $1 (applicants' own figures, carried as reported). Among real filings, none states conflicting costs: a server-side GROUP BY over the window finds exactly one cost per (filing, borough) pair for all 125,096 real filings (the only multi-cost 'filing' is the placeholder 'Permit is no', whose 4 events are held). Published borough totals were verified to the cent against that independent GROUP BY sum (citywide $43,586,788,485). 6,785 events state costs with cents; published figures round to the dollar. Filing-level coverage: 14,703 filings state $0 and 2,273 state $1 (applicants' own figures, carried as reported); 86.4% of filings state more than $1. The rule and its evidence are printed on the Data Sources page.",
+  "work_type_source": "work_type set of the issuance + job_description (dedicated classifier pass: trades.classify_nyc_trade)",
+  "zip": "zip_code"
+ },
+ "history_range": "1,016,520 rows all-time at build (issued dates from 2016-06-23)",
+ "jurisdiction": "New York City",
+ "jurisdiction_label": "New York City, New York",
+ "license": "NYC Open Data Terms of Use (Local Law 11 of 2012): datasets are available without registration, license, or usage restrictions; republication must identify the source \u2014 PermitsByCounty attributes every figure to the NYC Department of Buildings. Data provided as-is, no warranty.",
+ "order_tiebreak": "tracking_number",
+ "pull_select": [
+  "job_filing_number",
+  "work_permit",
+  "sequence_number",
+  "filing_reason",
+  "house_no",
+  "street_name",
+  "borough",
+  "lot",
+  "bin",
+  "block",
+  "work_type",
+  "permittee_s_license_type",
+  "applicant_business_name",
+  "approved_date",
+  "issued_date",
+  "expired_date",
+  "job_description",
+  "estimated_job_costs",
+  "permit_status",
+  "tracking_number",
+  "zip_code"
+ ],
+ "pull_where_extra": "borough IN ('Bronx', 'BRONX')",
+ "qa_thresholds": {
+  "backfill_expected_volume_12mo": 17828,
+  "backfill_volume_tolerance": 0.25,
+  "freshness_max_age_hours": 96,
+  "valuation_max_plausible_usd": 2000000000
+ },
+ "rate_limit": "Socrata anonymous tier; paged pulls with polite pacing.",
+ "refresh_tier": 1,
+ "registry_status": "live",
+ "source_name": "NYC Open Data \u2014 DOB NOW: Build \u2013 Approved Permits",
+ "source_type": "socrata",
+ "source_url": "https://data.cityofnewyork.us/Housing-Development/DOB-NOW-Build-Approved-Permits/rbx6-tga4",
+ "state": "NY",
+ "status_map": {
+  "Permit Issued": "issued",
+  "Signed-off": "complete"
+ },
+ "terms_status": "verified-open-2026-10-18: NYC Open Data Terms of Use under Local Law 11 of 2012 \u2014 no registration, license, or usage restrictions on portal datasets; source identification required on republication (satisfied by per-figure DOB attribution); no warranty by the City.",
+ "update_cadence": "daily (dataset stamp 2026-10-17T18:41:56Z at build; max issued_date in window pull 2026-10-16)",
+ "watermark_field": "issued_date + tracking_number (issue-date window; identity = job_filing_number|tracking_number \u2014 see dedupe_rule)",
+ "wave": "phase-1-secondary"
+}
