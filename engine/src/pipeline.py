@@ -170,7 +170,7 @@ def main():
     ap.add_argument("--since", required=True, help="window field >= this ISO date")
     ap.add_argument("--field", default="application_start_date",
                     choices=["application_start_date", "applieddate", "issue_date", "issued_date",
-                             "issueddate", "permitissuedate"],
+                             "issueddate", "permitissuedate", "DATE ISSUED"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -212,7 +212,14 @@ def main():
     # what we haul must match what the source says exists for this window.
     vault_dir = os.path.join(ENGINE, "data", "vault", args.registry,
                              f"backfill-{args.field}-{args.since}")
-    where = f"{args.field} >= '{args.since}T00:00:00'"
+    # Registry ckan_window_field_sql: a CKAN registry whose date column is a
+    # quoted, space-bearing TEXT field (San Antonio's "DATE ISSUED", plain
+    # ISO date strings) supplies its own window predicate fragment; the
+    # comparison is then a plain date-string comparison, not a timestamp.
+    if reg.get("ckan_window_field_sql"):
+        where = f"{reg['ckan_window_field_sql']} >= '{args.since}'"
+    else:
+        where = f"{args.field} >= '{args.since}T00:00:00'"
     # Registry pull_where_extra: an additional row restriction that is part
     # of the source's identity rules — e.g. San Francisco's pull is limited
     # to each permit's primary-address record (registry dedupe_rule). The
@@ -235,6 +242,12 @@ def main():
     # its unique key is permit_number. pull_select (when the registry
     # defines one) restricts requested columns (see socrata.pull_window).
     order = f"{args.field}, {reg.get('order_tiebreak', 'id')}"
+    # Registry order_sql: a registry may supply the full ORDER BY fragment
+    # (San Antonio: quoted identifiers, and the within-permit tiebreak on
+    # DATE SUBMITTED makes the collapse's representative row the permit's
+    # earliest submission).
+    if reg.get("order_sql"):
+        order = reg["order_sql"]
     if reg["source_type"] == "carto":
         manifest = carto.pull_window(reg["api_base"], reg["carto_table"],
                                      reg["pull_select"], where, order,
@@ -307,7 +320,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

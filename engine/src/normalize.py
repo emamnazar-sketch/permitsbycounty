@@ -8,8 +8,8 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_philly_trade,
-                    classify_trade, classify_nyc_trade, classify_sf_trade,
-                    classify_seattle_trade)
+                    classify_sa_trade, classify_trade, classify_nyc_trade,
+                    classify_sf_trade, classify_seattle_trade)
 
 # A real DOB job filing number: borough letter + 8 digits + filing iteration
 # (measured: 125,096 of 125,097 distinct window values; the one exception is
@@ -650,6 +650,124 @@ def normalize_baton_rouge(raw, reg):
     }
 
 
+import re as _re
+
+_SA_ZIP_RE = _re.compile(r"(\d{5})(?:-\d{4})?\s*$")
+
+
+def _sa_address(raw_address):
+    """San Antonio's ADDRESS is one free-text field: '3131 OLD ALMONTE
+    DR, City of San Antonio, TX 78224', with ETJ and enclave variants
+    ('City of San Antonio ETJ', 'Hollywood Park, TX 78232') and some
+    street-only values. Returns (street, city, zip): street is the text
+    before the first comma; city is the second segment with the 'City
+    of' prefix and the ETJ marker dropped (display only — coverage is
+    the city's feed, never the segment); zip is the trailing 5-digit
+    group when present (78,252 of 80,965 window rows carry one)."""
+    s = _clean(raw_address)
+    if not s:
+        return None, "San Antonio", None
+    zipc = None
+    m = _SA_ZIP_RE.search(s)
+    if m:
+        zipc = m.group(1)
+    parts = [p.strip() for p in s.split(",")]
+    street = parts[0] if parts else s
+    if street and street.isupper():
+        street = _title(street)
+    city = None
+    if len(parts) > 1:
+        c = parts[1]
+        if c.lower().startswith("city of "):
+            c = c[8:]
+        if c.upper().endswith(" ETJ"):
+            c = c[:-4]
+        c = c.strip()
+        if c:
+            city = _title(c) if c.isupper() else c
+    return street or None, city or "San Antonio", zipc
+
+
+def normalize_san_antonio(raw, reg):
+    """One collapsed San Antonio permit -> standard record dict (or None).
+
+    Input is NOT a raw feed row: the pipeline's collapse step (registry
+    collapse_events, key = PERMIT #) has already merged the permit's rows
+    into one dict carrying `_components` ({label, type, cost} per row —
+    the row's PERMIT TYPE and DECLARED VALUATION). Identity (registry
+    dedupe_rule): the PERMITS ISSUED register's grain is one row per
+    permit-type component an issuance covers, plus repeat submission
+    rows — one published permit = one PERMIT #, one issuance: across all
+    3,099 multi-row window permits the rows never disagree on address,
+    issue date, or work type (measured 2026-10-18), and the pull's order
+    makes the representative row the permit's earliest submission, so
+    application_date is the original DATE SUBMITTED. Scope (registry
+    pull_where_extra): the register also issues non-construction permits
+    (garage sales, tree affidavits, temporary signs and banners); those
+    families are filtered at pull time — no scoped permit's type set
+    touches them (measured: zero mixed permits). Privacy: the pull is
+    column-restricted by the registry pull_select — PRIMARY CONTACT and
+    PROJECT NAME, the register's two name-bearing fields (PRIMARY
+    CONTACT carries person names — e.g. individual garage-sale and
+    residential applicants; PROJECT NAME mixes applicant names with
+    project labels), are never requested from the API at all. The
+    dataset publishes no contractor/business field, so contractor stays
+    NULL, never inferred (the Boston/SF treatment). Valuation:
+    DECLARED VALUATION is stored as reported (the group's single stated
+    figure; the one window permit stating two figures stores the larger,
+    its amended figure) but is NOT published — the field is populated on
+    only 2.55% of window permits (the commercial building core) and
+    restates whole-project values across a project's permits, so no
+    honest county total exists: Bexar County runs counts-only (the
+    Austin/Seattle outcome, both diseases at once). Category: the
+    register's type names mix Res/Comm prefixes inconsistently and the
+    trade families are unmarked — NULL (honest-NULL precedent). Status:
+    the register publishes no status field; it is a permits-issued
+    register, so status is 'issued' (the Baton Rouge treatment). The
+    register publishes no scope-of-work text, so project_description
+    stays NULL, never invented.
+    """
+    sid = _clean(raw.get("PERMIT #"))
+    if not sid:
+        return None
+    comps = raw.get("_components") or []
+    if not comps:  # defensive: an uncollapsed row is its own one component
+        comps = [{"label": raw.get("PERMIT TYPE"),
+                  "type": raw.get("PERMIT TYPE"),
+                  "cost": raw.get("DECLARED VALUATION")}]
+    labels = []
+    for comp in comps:
+        lab = _clean(comp.get("label"))
+        if lab and lab not in labels:
+            labels.append(lab)
+    stated = {_num(comp.get("cost")) for comp in comps}
+    stated.discard(None)
+    valuation = max(stated) if stated else None
+    street, city, zipc = _sa_address(raw.get("ADDRESS"))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": street,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": "; ".join(labels) or None,
+        "trade": classify_sa_trade(labels),
+        "category": None,  # no consistent res/comm class published; honest NULL
+        "project_description": None,  # register publishes no scope text
+        "valuation": valuation,
+        "status": "issued",  # the dataset is a permits-issued register
+        "status_source": None,  # the dataset publishes no status field
+        "application_date": _date(raw.get("DATE SUBMITTED")),
+        "issue_date": _date(raw.get("DATE ISSUED")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": None,  # only name fields are person fields — never pulled
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -662,4 +780,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "philadelphia-pa": normalize_philadelphia,
                "boston-suffolk-ma": normalize_boston,
                "cincinnati-hamilton-oh": normalize_cincinnati,
-               "baton-rouge-east-baton-rouge-la": normalize_baton_rouge}
+               "baton-rouge-east-baton-rouge-la": normalize_baton_rouge,
+               "san-antonio-bexar-tx": normalize_san_antonio}

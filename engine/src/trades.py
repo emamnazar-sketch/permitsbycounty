@@ -363,6 +363,83 @@ def classify_br_trade(permit_type=""):
     return "general"
 
 
+def classify_sa_trade(components=()):
+    """San Antonio (data.sanantonio.gov CKAN, Building Permits — PERMITS
+    ISSUED) trade classification.
+
+    Input is the permit's SET of PERMIT TYPE labels — the register's grain
+    is one row per permit-type component an issuance covers (plus repeat
+    submission rows), and the pipeline collapses those rows into one
+    permit before classification (registry dedupe_rule). The type names
+    are the city's own permit families, so classification is exact-match
+    on the named families — no description mining exists to do (the
+    register publishes no scope text at all). Precedence, first match
+    wins: a new-building component names the project's primary purpose;
+    demolition next (a demo with a utility disconnect is a demolition);
+    then the licensed trades the city files as separate families
+    (electrical, plumbing, gas, mechanical = HVAC); then roofing, solar,
+    foundation, signage, fencing. Judgment calls, each measured against
+    the 2026-10-18 window audit (73,739 scoped rows, 64,535 permits):
+
+    * 'Plumbing Gas Permit' classifies as GAS, not plumbing: the work is
+      gas-line installation (Boston treatment — the city's gas family is
+      its own trade). 'Plumbing Medical Gas Permit' stays PLUMBING (a
+      plumbing specialty, 99 permits).
+    * 'Foundation Repair Permit' (3,208 permits) and 'Comm Foundation
+      Permit' classify as FOUNDATION, their own trade — the source's own
+      distinct permit family (the Boston gas / Baton Rouge generator
+      treatment). Foundation work names no other licensed trade.
+    * The repair/remodel/accessory/site families name no single licensed
+      trade and land in 'general': Residential Repair, Minor Commercial
+      Repair, Maintenance, Comm Remodel, Comm Addition, Home Addition,
+      accessory buildings/dwellings, patios, carports, decks, pools,
+      shade structures, retaining walls, pad sites, monuments, ice-teller
+      machines, drive-thru aisles, equipment, manufactured homes,
+      sitework, street improvement, sidewalk-curb, tree permits, building
+      moves, pedestrian protection. Sampled 'general' volume is genuinely
+      trade-less or multi-trade (remodels and repairs dominate).
+    * Non-construction register families (garage sales, tree affidavits,
+      temporary signs and banners) never reach this classifier — they are
+      excluded by the registry's scope filter at pull time, and the
+      exclusion is named and counted on the county pages.
+
+    Deterministic; first match wins; permits no rule claims land in
+    'general' and are counted in the run report. Kept separate so other
+    counties cannot be disturbed.
+    """
+    c = {str(x).strip() for x in (components or ()) if x}
+    if c & {"Res New Building Permit", "Comm New Building Permit",
+            "Comm Shell Permit"}:
+        return "new-construction"
+    if c & {"Demolition Permit", "Billboard Demolition"}:
+        return "demolition"
+    if c & {"Electrical General Permit", "Electrical TOPS Permit",
+            "Electrical TML Permit", "Electrical Reconnect Permit",
+            "Electrical Completion Permit", "LSR Electrical Permit"}:
+        return "electrical"
+    if c & {"Plumbing General Permit", "Plumbing Irrigation Permit",
+            "Plumbing Sewer Permit", "Plumbing Backflow Permit",
+            "Plumbing Medical Gas Permit", "Plumbing Completion Permit",
+            "LSR Plumbing Permit"}:
+        return "plumbing"
+    if "Plumbing Gas Permit" in c:
+        return "gas"
+    if c & {"Mechanical Permit", "LSR Mechanical Permit",
+            "Mechanical Completion Permit"}:
+        return "hvac"
+    if "Re-Roof Permit" in c:
+        return "roofing"
+    if "Solar - Photovoltaic Permit" in c:
+        return "solar"
+    if c & {"Foundation Repair Permit", "Comm Foundation Permit"}:
+        return "foundation"
+    if c & {"On Premise Sign", "Off Premise Billboard"}:
+        return "signage"
+    if c & {"Residential Fence Permit", "Comm Fence Permit"}:
+        return "fencing"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

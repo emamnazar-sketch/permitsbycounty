@@ -61,6 +61,9 @@ TRADE_LABELS = {
     # Baton Rouge: standby-generator permits are the City-Parish's own
     # permit family (Generator Permit).
     "generator": "Generator",
+    # San Antonio: foundation repair is the city's own high-volume permit
+    # family (Foundation Repair Permit, 3,208 window permits).
+    "foundation": "Foundation",
 }
 
 CFG = {
@@ -251,6 +254,42 @@ CFG = {
                      'project value on each of its building permits, and occupancy permits — '
                      'which authorize a use rather than construction — usually state no '
                      'project value at all.</p>'),
+    },
+    "tx/bexar": {
+        "registry": "san-antonio-bexar-tx",
+        "state_name": "Texas", "state_abbr": "TX",
+        "county_name": "Bexar County", "crumb_county": "Bexar County, Texas",
+        "h1": "Building Permits in Bexar County, Texas",
+        "city": "San Antonio",
+        "source_short": "City of San Antonio",
+        "source_line": "City of San Antonio open data — building permits issued by the Development Services Department",
+        "creator": "City of San Antonio",
+        "cite_place": "Bexar County (San Antonio)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # San Antonio's DECLARED VALUATION failed validation on both
+        # diseases at once (registry field_map.valuation — populated on
+        # only 2.55% of permits, the commercial building core, and inside
+        # that slice it restates whole-project values across a project's
+        # permits): counts only, no dollar figures.
+        "show_valuation": False, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City of San Antonio — counted and "
+                     "sorted by trade and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of San Antonio</strong> (Development Services Department). '
+                     'Other Bexar County municipalities publish their permits separately and '
+                     'are not in this feed, so totals here are San Antonio totals — labeled '
+                     'as such, never blended. Three facts about the city\'s register shape '
+                     'the figures. The register lists one row for every permit-type '
+                     'component an issuance covers, so we count each permit <strong>once</strong>, '
+                     'by its permit number. The register also issues non-construction '
+                     'permits — garage sales, tree affidavits, and temporary signs and '
+                     'banners — which authorize no construction and are <strong>not '
+                     'counted</strong> here (7,226 of the register\'s 71,761 permits in the '
+                     'last 12 months). And the city declares a project value on only about '
+                     '1 in 40 permits — the commercial building core — and repeats a '
+                     'project\'s value across its permits, so this report publishes permit '
+                     'counts, not a dollar total that would describe only that slice.</p>'),
     },
     "il/cook": {
         "registry": "chicago-cook-il",
