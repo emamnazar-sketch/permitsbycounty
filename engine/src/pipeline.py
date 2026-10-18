@@ -90,8 +90,9 @@ def main():
     ap.add_argument("--registry", required=True)
     ap.add_argument("--since", required=True, help="window field >= this ISO date")
     ap.add_argument("--field", default="application_start_date",
-                    choices=["application_start_date", "issue_date"],
-                    help="date field the backfill window is keyed on")
+                    choices=["application_start_date", "applieddate", "issue_date"],
+                    help="date field the backfill window is keyed on "
+                         "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
 
     reg = load_registry(args.registry)
@@ -118,8 +119,14 @@ def main():
     where = f"{args.field} >= '{args.since}T00:00:00'"
     report["window_field"] = args.field
     report["expected_pull_count"] = socrata.count_where(reg["api_base"], where)
+    # Paging order keys on the source's uniqueness field (registry
+    # order_tiebreak): Chicago has a numeric id; Austin has no id column —
+    # its unique key is permit_number. pull_select (when the registry
+    # defines one) restricts requested columns (see socrata.pull_window).
+    order = f"{args.field}, {reg.get('order_tiebreak', 'id')}"
     manifest = socrata.pull_window(reg["api_base"], where,
-                                   f"{args.field}, id", vault_dir, run_stamp)
+                                   order, vault_dir, run_stamp,
+                                   select=reg.get("pull_select"))
     report["pulled_rows"] = manifest["total_rows"]
     report["vault_pages"] = len(manifest["pages"])
 
@@ -165,7 +172,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field == "application_start_date":
+    if args.field in ("application_start_date", "applieddate", "issue_date"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

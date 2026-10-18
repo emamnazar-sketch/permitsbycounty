@@ -78,4 +78,70 @@ def normalize_chicago(raw, reg):
     }
 
 
-NORMALIZERS = {"chicago-cook-il": normalize_chicago}
+def normalize_austin(raw, reg):
+    """One raw Austin row -> standard record dict (or None if unusable id).
+
+    Uniqueness: source_record_id = permit_number — verified unique in the
+    trailing-12-month window by the 2026-10-17 audit brief (55,575 distinct
+    permit_number = 55,575 rows) and re-checked at build time by the
+    pipeline's in-batch duplicate gate; never assumed silently.
+    Privacy: the pull is column-restricted by the registry pull_select —
+    contractor_full_name and applicant_full_name are never requested from
+    the API at all, so they cannot reach this function. The only contractor
+    field carried is contractor_company_name (a business name).
+    """
+    sid = _clean(raw.get("permit_number"))
+    if not sid:
+        return None
+    address = _clean(raw.get("original_address1"))
+    if address and address.isupper():
+        address = _title(address)
+    city = _clean(raw.get("original_city"))
+    if city and city.isupper():
+        city = _title(city)
+    if not city:
+        city = "Austin"  # issuing jurisdiction's seat; mirrors Chicago's fixed city
+    zipc = _clean(raw.get("original_zip"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _clean(raw.get("contractor_company_name"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("status_current"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("permit_class_mapped")) or "").lower()
+    category = cat_src if cat_src in ("residential", "commercial") else None
+    pt = _clean(raw.get("permit_type_desc"))
+    wc = _clean(raw.get("work_class"))
+    trade = classify_trade(pt, wc, raw.get("description"))
+    # Austin Building Permits: work_class "New" on a building permit is new
+    # construction (Austin publishes no separate permit type for it). Only
+    # applied when the generic classifier found nothing more specific.
+    if pt == "Building Permit" and (wc or "").lower() == "new" and trade == "general":
+        trade = "new-construction"
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": pt,
+        "trade": trade,
+        "category": category,
+        "project_description": _clean(raw.get("description")),
+        "valuation": _num(raw.get("total_job_valuation")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("applieddate")),
+        "issue_date": _date(raw.get("issue_date")),
+        "source_updated_date": _date(raw.get("statusdate")),
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
+NORMALIZERS = {"chicago-cook-il": normalize_chicago,
+               "austin-travis-tx": normalize_austin}

@@ -33,6 +33,15 @@ def classify_trade(permit_type="", work_type="", description=""):
         return "plumbing"
     if wt == "mechanical work":
         return "hvac"
+    # Austin (data.austintexas.gov): the permit type itself names the trade
+    # ("Mechanical Permit", "Plumbing Permit") and work_class carries no
+    # trade signal. Chicago's permit_type values never contain these
+    # strings (verified against the loaded Chicago data), so these rules
+    # cannot reclassify Chicago records.
+    if "mechanical" in pt:
+        return "hvac"
+    if "plumbing" in pt:
+        return "plumbing"
     if wt in ("reroofing",) or _contains(d, ROOF):
         return "roofing"
     if "new construction" in pt:

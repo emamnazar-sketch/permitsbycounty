@@ -31,8 +31,13 @@ def dataset_updated_at(domain, dataset_id):
     return meta.get("rowsUpdatedAt"), meta.get("name")
 
 
-def pull_window(api_base, where, order, vault_dir, run_stamp):
-    """Pull all rows matching `where`, paged, into vault_dir. Returns manifest."""
+def pull_window(api_base, where, order, vault_dir, run_stamp, select=None):
+    """Pull all rows matching `where`, paged, into vault_dir. Returns manifest.
+
+    `select`: optional column list sent as $select. Used by sources whose
+    registry excludes fields by design — e.g. Austin person-name fields are
+    never requested at all, so they never enter our records (SOP 3 rule 1).
+    """
     os.makedirs(vault_dir, exist_ok=True)
     pages = []
     offset = 0
@@ -41,6 +46,8 @@ def pull_window(api_base, where, order, vault_dir, run_stamp):
         params = {"$limit": PAGE_SIZE, "$offset": offset, "$order": order}
         if where:
             params["$where"] = where
+        if select:
+            params["$select"] = ",".join(select)
         url = api_base + "?" + urllib.parse.urlencode(params)
         body = _get(url)
         rows = json.loads(body)
