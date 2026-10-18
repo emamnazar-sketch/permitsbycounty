@@ -98,6 +98,52 @@ def classify_seattle_trade(type_mapped="", type_desc="", description=""):
     return "general"
 
 
+def classify_philly_trade(permit_type="", work_type="", description=""):
+    """Philadelphia (phl.carto.com `permits`, L&I) trade classification.
+
+    Philadelphia's permittype names the trade directly for the four big
+    licensed trades (Plumbing, Electrical, Mechanical, Fire Suppression) —
+    those win first. typeofwork then separates new construction, EZ roof
+    replacements, solar, signs, and demolition from the building/zoning/
+    general stream; the approved scope is the keyword fallback. The one
+    trap: 'EZ Interior Non-Load-Bearing Wall Demo.' is interior alteration
+    work, not demolition — it is excluded from the demolition rule by its
+    'wall demo' wording. Deterministic, first match wins; records no rule
+    claims land in 'general' and are counted in the run report. Kept
+    separate so other counties cannot be disturbed.
+    """
+    pt = (permit_type or "").strip()
+    tw = (work_type or "").strip().lower()
+    d = (description or "").lower()
+    if pt == "Plumbing":
+        return "plumbing"
+    if pt == "Electrical":
+        return "electrical"
+    if pt == "Mechanical":
+        return "hvac"
+    if pt == "Fire Suppression":
+        return "fire-protection"
+    if pt == "Demolition" or ("demolition" in tw and "wall demo" not in tw):
+        return "demolition"
+    if tw.startswith("new construction"):
+        return "new-construction"
+    if "roof" in tw:
+        return "roofing"
+    if "solar" in tw:
+        return "solar"
+    if "sign" in tw:
+        return "signage"
+    if _contains(d, HVAC):
+        return "hvac"
+    if _contains(d, PLUMB):
+        return "plumbing"
+    if _contains(d, ELEC):
+        return "electrical"
+    if _contains(d, ROOF):
+        return "roofing"
+    return "general"
+
+
 import re
 
 _NUMWORD = (r"(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|"

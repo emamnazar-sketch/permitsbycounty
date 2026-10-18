@@ -6,8 +6,8 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
 import re
 
-from trades import (classify_trade, classify_nyc_trade, classify_sf_trade,
-                    classify_seattle_trade)
+from trades import (classify_philly_trade, classify_trade, classify_nyc_trade,
+                    classify_sf_trade, classify_seattle_trade)
 
 # A real DOB job filing number: borough letter + 8 digits + filing iteration
 # (measured: 125,096 of 125,097 distinct window values; the one exception is
@@ -331,6 +331,60 @@ def normalize_nyc(raw, reg):
     }
 
 
+def normalize_philadelphia(raw, reg):
+    """One raw Philadelphia row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the permit number is exactly unique
+    in the trailing-12-month window (45,900 rows = 45,900 distinct
+    permitnumber, measured 2026-10-18) — source_record_id = permitnumber,
+    no collapsing. Privacy: the pull is column-restricted by the registry
+    pull_select — opa_owner (the property owner, a person field) is never
+    requested from the API at all, and neither are the contractor address
+    fields or the geometry column. The only name carried is
+    contractorname, L&I's published contractor of record on the permit.
+    Valuation: the dataset publishes no cost field at all (47-column
+    schema verified), so valuation stays NULL and Philadelphia runs
+    counts-only by construction. Application date: the dataset publishes
+    no application-date column, so it stays NULL by construction.
+    """
+    sid = _clean(raw.get("permitnumber"))
+    if not sid:
+        return None
+    address = _clean(raw.get("address"))
+    if address and address.isupper():
+        address = _title(address)
+    contractor = _clean(raw.get("contractorname"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("commercialorresidential")) or "").lower()
+    category = cat_src if cat_src in ("residential", "commercial") else None
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Philadelphia",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zip")),
+        "permit_type": _clean(raw.get("permitdescription")) or _clean(raw.get("permittype")),
+        "trade": classify_philly_trade(raw.get("permittype"), raw.get("typeofwork"),
+                                       raw.get("approvedscopeofwork")),
+        "category": category,
+        "project_description": _clean(raw.get("approvedscopeofwork")),
+        "valuation": None,  # source publishes no cost field (registry field_map)
+        "status": status,
+        "status_source": status_src,
+        "application_date": None,  # source publishes no application-date column
+        "issue_date": _date(raw.get("permitissuedate")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -339,4 +393,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "nyc-kings-ny": normalize_nyc,
                "nyc-queens-ny": normalize_nyc,
                "nyc-bronx-ny": normalize_nyc,
-               "nyc-richmond-ny": normalize_nyc}
+               "nyc-richmond-ny": normalize_nyc,
+               "philadelphia-pa": normalize_philadelphia}

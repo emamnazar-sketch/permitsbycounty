@@ -114,6 +114,34 @@ CFG = {
                      'this feed, so totals here are Seattle totals — labeled as such, never blended. '
                      'County-wide coverage is not implied.</p>'),
     },
+    "pa/philadelphia": {
+        "registry": "philadelphia-pa",
+        "state_name": "Pennsylvania", "state_abbr": "PA",
+        "county_name": "Philadelphia County", "crumb_county": "Philadelphia County, Pennsylvania",
+        "h1": "Building Permits in Philadelphia County, Pennsylvania",
+        "city": "Philadelphia",
+        "source_short": "City of Philadelphia",
+        "source_line": "City of Philadelphia open data (OpenDataPhilly) — Licenses & Inspections building and zoning permits",
+        "creator": "City of Philadelphia",
+        "cite_place": "Philadelphia County (Philadelphia)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Philadelphia's L&I feed publishes no cost or valuation field at
+        # all (47-column schema verified 2026-10-18 — registry
+        # field_map.valuation): there is no dollar figure to validate or
+        # withhold, so the county runs counts-only by construction.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is the City of Philadelphia's own class for each permit "
+                          "(Residential / Commercial)."),
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City of Philadelphia — counted and "
+                     "sorted by trade, category, and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Philadelphia</strong> (Department of Licenses and '
+                     'Inspections). Philadelphia is a consolidated city-county, so this feed '
+                     'covers the whole of Philadelphia County. The city\'s feed publishes no '
+                     'project-cost field, so this report publishes permit counts, trades, and '
+                     'categories — no dollar figures.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",

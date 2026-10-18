@@ -25,6 +25,7 @@ REPO = os.path.dirname(ENGINE)
 sys.path.insert(0, HERE)
 
 import socrata
+import carto
 import normalize as nz
 import qa
 
@@ -148,7 +149,7 @@ def main():
     ap.add_argument("--since", required=True, help="window field >= this ISO date")
     ap.add_argument("--field", default="application_start_date",
                     choices=["application_start_date", "applieddate", "issue_date", "issued_date",
-                             "issueddate"],
+                             "issueddate", "permitissuedate"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -160,10 +161,19 @@ def main():
     report = {"registry": args.registry, "run_stamp": run_stamp, "since": args.since}
 
     # Gate 5 (freshness) input: dataset-level update stamp from the source itself.
+    # Carto registries expose no dataset-level stamp through their SQL API;
+    # their freshness measure is the freshest watermark value in the table
+    # (registry freshness_stamp_field — see carto.py).
     import urllib.parse
     domain = urllib.parse.urlparse(reg["api_base"]).hostname
-    updated_epoch, ds_name = socrata.dataset_updated_at(domain, reg["dataset_id"])
-    updated_dt = datetime.fromtimestamp(updated_epoch, timezone.utc)
+    if reg["source_type"] == "carto":
+        ds_name = reg["dataset_id"]
+        stamp_iso = carto.dataset_updated_at(reg["api_base"], reg["carto_table"],
+                                             reg["freshness_stamp_field"])
+        updated_dt = datetime.fromisoformat(str(stamp_iso).replace("Z", "+00:00"))
+    else:
+        updated_epoch, ds_name = socrata.dataset_updated_at(domain, reg["dataset_id"])
+        updated_dt = datetime.fromtimestamp(updated_epoch, timezone.utc)
     age_h = (utcnow() - updated_dt).total_seconds() / 3600
     report["source_dataset"] = ds_name
     report["source_updated_at"] = updated_dt.isoformat()
@@ -184,15 +194,24 @@ def main():
         where += f" AND {reg['pull_where_extra']}"
         report["pull_where_extra"] = reg["pull_where_extra"]
     report["window_field"] = args.field
-    report["expected_pull_count"] = socrata.count_where(reg["api_base"], where)
+    if reg["source_type"] == "carto":
+        report["expected_pull_count"] = carto.count_where(reg["api_base"],
+                                                          reg["carto_table"], where)
+    else:
+        report["expected_pull_count"] = socrata.count_where(reg["api_base"], where)
     # Paging order keys on the source's uniqueness field (registry
     # order_tiebreak): Chicago has a numeric id; Austin has no id column —
     # its unique key is permit_number. pull_select (when the registry
     # defines one) restricts requested columns (see socrata.pull_window).
     order = f"{args.field}, {reg.get('order_tiebreak', 'id')}"
-    manifest = socrata.pull_window(reg["api_base"], where,
-                                   order, vault_dir, run_stamp,
-                                   select=reg.get("pull_select"))
+    if reg["source_type"] == "carto":
+        manifest = carto.pull_window(reg["api_base"], reg["carto_table"],
+                                     reg["pull_select"], where, order,
+                                     vault_dir, run_stamp)
+    else:
+        manifest = socrata.pull_window(reg["api_base"], where,
+                                       order, vault_dir, run_stamp,
+                                       select=reg.get("pull_select"))
     report["pulled_rows"] = manifest["total_rows"]
     report["vault_pages"] = len(manifest["pages"])
 
@@ -202,7 +221,8 @@ def main():
     stream = []
     for page in manifest["pages"]:
         with open(os.path.join(vault_dir, page["file"])) as fh:
-            rows = json.load(fh)
+            payload = json.load(fh)
+        rows = payload["rows"] if isinstance(payload, dict) else payload
         ref = f"{os.path.basename(vault_dir)}/{page['file']}"
         for raw in rows:
             stream.append((raw, ref))
@@ -247,7 +267,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)
