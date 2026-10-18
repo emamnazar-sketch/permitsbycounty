@@ -268,6 +268,48 @@ def classify_boston_trade(permit_type_descr="", worktype="", description=""):
     return "general"
 
 
+def classify_cincinnati_trade(components=()):
+    """Cincinnati (data.cincinnati-oh.gov uhjb-xac9) trade classification.
+
+    Input is the permit's SET of component labels — the city's feed lists
+    one row per work component a permit covers, and the pipeline collapses
+    those rows into one permit before classification (registry
+    dedupe_rule). The component labels are themselves trade-bearing
+    (Plumbing Permits, HVAC, Fire Protection Systems...), so the primary
+    trade is chosen by precedence: a New Building component names the
+    project's primary purpose and wins first (a new building with an HVAC
+    component is a new-construction project — 24 such permits measured,
+    plus 16 with excavation as well); the licensed trades named by
+    components win next; a Wrecking component with no new building is a
+    demolition (Excavation/Fill + Wrecking is its usual shape, 69
+    permits). Alteration, Repair, Addition, Misc. Structures,
+    Excavation/Fill, and Parking Lots name no licensed trade and land in
+    'general' unless a trade component accompanies them (Alteration +
+    HVAC is the commonest multi-component permit, 181 — classified
+    hvac). The feed carries NO electrical component at all (zero rows
+    mention electrical work — Cincinnati's dataset simply has none), so
+    no electrical rule exists here. Deterministic, first match wins;
+    permits no rule claims land in 'general' and are counted in the run
+    report. Kept separate so other counties cannot be disturbed.
+    """
+    c = {str(x).strip() for x in (components or ()) if x}
+    if "New Building" in c:
+        return "new-construction"
+    if "Plumbing Permits" in c:
+        return "plumbing"
+    if "HVAC" in c:
+        return "hvac"
+    if "Fire Protection Systems" in c:
+        return "fire-protection"
+    if "Signs" in c:
+        return "signage"
+    if "Elevator Permit" in c:
+        return "elevator"
+    if "Wrecking" in c:
+        return "demolition"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

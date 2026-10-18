@@ -104,10 +104,22 @@ def collapse_event_stream(stream, cfg):
     for the 'latest_event_per_job_filing' valuation rule — marks exactly
     one event per job filing with `_valuation_event` (the filing's latest
     issuance in the window), because the feed restates the filing's
-    estimated cost on every one of its issuances. Registries without
-    collapse_events never reach this function.
+    estimated cost on every one of its issuances.
+
+    Cincinnati's grain is one row per work COMPONENT a permit covers;
+    its registry sets `component_field` (plus optional
+    `component_type_field` / `component_cost_field`), and each merged
+    event then also carries `_components`: one {label, type, cost} dict
+    per component row, in pull order. Its 'sum_components' valuation rule
+    is applied by the normalizer (each component states its own slice of
+    the permit's estimated cost; the permit's value is their sum).
+    Agreement fields default to the NYC list; a registry may override
+    them with `agreement_fields`. Registries without collapse_events
+    never reach this function.
     """
     key_fields = cfg["key"]
+    agree_fields = cfg.get("agreement_fields") or COLLAPSE_AGREEMENT_FIELDS
+    comp_field = cfg.get("component_field")
     groups, order = {}, []
     disagreements = Counter()
     for raw, ref in stream:
@@ -115,13 +127,21 @@ def collapse_event_stream(stream, cfg):
         if key not in groups:
             merged = dict(raw)
             merged["_work_types"] = []
+            if comp_field:
+                merged["_components"] = []
             groups[key] = (merged, ref)
             order.append(key)
         merged, _ = groups[key]
         wt = raw.get("work_type")
         if wt and wt not in merged["_work_types"]:
             merged["_work_types"].append(wt)
-        for f in COLLAPSE_AGREEMENT_FIELDS:
+        if comp_field:
+            merged["_components"].append({
+                "label": raw.get(comp_field),
+                "type": raw.get(cfg["component_type_field"]) if cfg.get("component_type_field") else None,
+                "cost": raw.get(cfg["component_cost_field"]) if cfg.get("component_cost_field") else None,
+            })
+        for f in agree_fields:
             if raw.get(f) != merged.get(f):
                 disagreements[f] += 1
     events = [groups[k] for k in order]

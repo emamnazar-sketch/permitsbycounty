@@ -176,6 +176,41 @@ CFG = {
                      'project\'s value can appear on both its building permit and its '
                      'certificate.</p>'),
     },
+    "oh/hamilton": {
+        "registry": "cincinnati-hamilton-oh",
+        "state_name": "Ohio", "state_abbr": "OH",
+        "county_name": "Hamilton County", "crumb_county": "Hamilton County, Ohio",
+        "h1": "Building Permits in Hamilton County, Ohio",
+        "city": "Cincinnati",
+        "source_short": "City of Cincinnati",
+        "source_line": "City of Cincinnati open data — building permits from the Buildings & Inspections Department",
+        "creator": "City of Cincinnati",
+        "cite_place": "Hamilton County (Cincinnati)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Cincinnati's estprojectcostdec passed validation at permit level
+        # (registry field_map.valuation — the feed's grain is one row per
+        # work component, each stating its own slice of the permit's cost;
+        # the permit's value is the component sum: 100% parseable, 97.1% of
+        # permits above $1, no stamp pathology, DB sum verified against an
+        # independently computed total): values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category follows the building code each permit was issued under, as "
+                          "published by the City of Cincinnati: RCO (Residential Code of Ohio) "
+                          "permits are shown as Residential and OBC (Ohio Building Code) permits "
+                          "as Commercial."),
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City of Cincinnati — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Cincinnati</strong> (Buildings &amp; Inspections Department). '
+                     'Other Hamilton County jurisdictions publish their permits separately and are '
+                     'not in this feed, so totals here are Cincinnati totals — labeled as such, '
+                     'never blended. Two facts about the city\'s data shape the counts. The dataset '
+                     'lists one row for every work component a permit covers, so we count each '
+                     'permit <strong>once</strong> and add its components\' stated costs together '
+                     'for its value. And the dataset carries <strong>no electrical permits</strong> '
+                     'at all, so no electrical figures appear in this report.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",

@@ -6,9 +6,9 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
 import re
 
-from trades import (classify_boston_trade, classify_philly_trade,
-                    classify_trade, classify_nyc_trade, classify_sf_trade,
-                    classify_seattle_trade)
+from trades import (classify_boston_trade, classify_cincinnati_trade,
+                    classify_philly_trade, classify_trade, classify_nyc_trade,
+                    classify_sf_trade, classify_seattle_trade)
 
 # A real DOB job filing number: borough letter + 8 digits + filing iteration
 # (measured: 125,096 of 125,097 distinct window values; the one exception is
@@ -459,6 +459,116 @@ def normalize_boston(raw, reg):
     }
 
 
+def _unquote(v):
+    """Cincinnati's current extract wraps some text values in literal
+    double quotes (a CSV-import artifact: '"QUEEN CITY CONSTRUCTION,
+    INC."'). Strip one surrounding pair; leave inner quotes alone."""
+    s = _clean(v)
+    if s and len(s) >= 2 and s.startswith('"') and s.endswith('"'):
+        s = s[1:-1].strip() or None
+    return s
+
+
+def _cost(v):
+    """Cincinnati's estprojectcostdec is a TEXT column ('20000')."""
+    s = _unquote(v)
+    if s is None:
+        return None
+    try:
+        return float(s.replace(",", "").replace("$", ""))
+    except ValueError:
+        return None
+
+
+def normalize_cincinnati(raw, reg):
+    """One collapsed Cincinnati permit -> standard record dict (or None).
+
+    Input is NOT a raw feed row: the pipeline's collapse step (registry
+    collapse_events, key = permitnum) has already merged the permit's
+    per-component rows into one dict carrying `_components` ({label,
+    type, cost} per component row, in pull order). Identity (registry
+    dedupe_rule): one published permit = one permitnum — the feed's grain
+    is one row per work component the permit covers (10,417 window rows =
+    9,788 permits; rows are unique per (permitnum, component), and a
+    permit's rows agree on every identity field, re-asserted by the
+    collapse on each run). Privacy: the dataset publishes no applicant or
+    owner person-name fields at all (verified against the full 31-column
+    schema); the only name carried is companyname, the permit's published
+    company of record, with its CSV quote artifacts stripped — the city's
+    'OWNER' code (owner-permitted work) names no company and stays NULL.
+    Valuation (registry field_map.valuation): each component row states
+    its own slice of the permit's estimated cost, so the permit's value
+    is the SUM of its components' stated costs. Category: permitclass is
+    the building code the permit issued under — RCO (Residential Code of
+    Ohio) -> residential, OBC (Ohio Building Code) -> commercial; the
+    class is published on 100% of window rows. The dataset publishes no
+    free-text scope: `description` IS the component label, so the record's
+    project description is the permit's component labels joined.
+    """
+    sid = _clean(raw.get("permitnum"))
+    if not sid:
+        return None
+    comps = raw.get("_components") or []
+    if not comps:  # defensive: an uncollapsed row is its own one component
+        comps = [{"label": raw.get("description"),
+                  "type": raw.get("permittypemapped"),
+                  "cost": raw.get("estprojectcostdec")}]
+    labels, types, costs = [], [], []
+    for c in comps:
+        lab = _clean(c.get("label"))
+        if lab and lab not in labels:
+            labels.append(lab)
+        typ = _clean(c.get("type"))
+        if typ and typ not in types:
+            types.append(typ)
+        v = _cost(c.get("cost"))
+        if v is not None:
+            costs.append(v)
+    valuation = sum(costs) if costs else None
+    address = _clean(raw.get("originaladdress1"))
+    if address and address.isupper():
+        address = _title(address)
+    city = _clean(raw.get("originalcity"))
+    if city and city.isupper():
+        city = _title(city)
+    if not city:
+        city = "Cincinnati"  # issuing jurisdiction's seat; mirrors Austin's default
+    zipc = _clean(raw.get("originalzip"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _unquote(raw.get("companyname"))
+    if contractor and contractor.upper() == "OWNER":
+        contractor = None  # the city's owner-permitted code names no company
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("statuscurrentmapped")) or _clean(raw.get("statuscurrent"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("permitclass")) or "").upper()
+    category = {"RCO": "residential", "OBC": "commercial"}.get(cat_src)
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": "; ".join(types) or None,
+        "trade": classify_cincinnati_trade(labels),
+        "category": category,
+        "project_description": "; ".join(labels) or None,
+        "valuation": valuation,
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("applieddate")),
+        "issue_date": _date(raw.get("issueddate")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -469,4 +579,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "nyc-bronx-ny": normalize_nyc,
                "nyc-richmond-ny": normalize_nyc,
                "philadelphia-pa": normalize_philadelphia,
-               "boston-suffolk-ma": normalize_boston}
+               "boston-suffolk-ma": normalize_boston,
+               "cincinnati-hamilton-oh": normalize_cincinnati}
