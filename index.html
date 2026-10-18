@@ -530,6 +530,7 @@
       }
       .email-field input::placeholder { color: #8a9aa1; }
       .digest .btn-teal { padding: 15px 28px; border-radius: 8px; }
+      .digest .btn-teal:disabled { opacity: 0.65; cursor: wait; }
       .digest-done {
         display: none;
         background: rgba(255, 255, 255, 0.08);
@@ -1182,7 +1183,7 @@
             <span class="d-only">A simple summary of local permit activity. Free in your inbox.</span>
             <span class="m-only">Local permit activity. Free in your inbox.</span>
           </p>
-          <p class="digest-small">Signup opens at launch &mdash; free, one email a week.</p>
+          <p class="digest-small">Free weekly digest &mdash; one email a week. No spam, unsubscribe anytime.</p>
         </div>
         <form class="digest-form" id="digestForm" novalidate>
           <label class="email-field">
@@ -1343,7 +1344,7 @@
               <span class="d-only">The weekly digest carries the newest briefs and guides for your county. Free.</span>
               <span class="m-only">The newest briefs and guides. Free in your inbox.</span>
             </p>
-            <p class="digest-small">Signup opens at launch &mdash; free, one email a week.</p>
+            <p class="digest-small">Free weekly digest &mdash; one email a week. No spam, unsubscribe anytime.</p>
           </div>
           <form class="digest-form" id="blogDigestForm" novalidate>
             <label class="email-field">
@@ -1482,7 +1483,7 @@
           </figure>
 
           <h2>How PermitsByCounty helps</h2>
-          <p>PermitsByCounty is being built to do this gathering for you: free county-by-county permit reports and a free weekly digest that puts your county&rsquo;s new permits in one short email, trade by trade. Coverage launches in waves &mdash; Wave 1 is Texas metros, then Florida metros, Maricopa County, North Carolina metros, and Cook County &mdash; and the digest signup opens when coverage launches. We are not live yet, and we will not pretend otherwise: until your county opens, the free method above works today, with data straight from your own city or county. You can see the report format in the <a href="#report" data-goto-report>sample Travis County report</a> on our home page, and more answers are coming to the <a href="#blog" data-blog-link>Permit Blog</a>.</p>
+          <p>PermitsByCounty is being built to do this gathering for you: free county-by-county permit reports and a free weekly digest that puts your county&rsquo;s new permits in one short email, trade by trade. Coverage launches in waves &mdash; Wave 1 is Texas metros, then Florida metros, Maricopa County, North Carolina metros, and Cook County &mdash; and the free weekly digest signup is open now: join below, and your county&rsquo;s briefs start arriving as its coverage opens. Until your county opens, the free method above works today, with data straight from your own city or county. You can see the report format in the <a href="#report" data-goto-report>sample Travis County report</a> on our home page, and more answers are coming to the <a href="#blog" data-blog-link>Permit Blog</a>.</p>
 
           <h2>Frequently asked questions</h2>
           <div class="faq-item">
@@ -1531,7 +1532,7 @@
               <span class="d-only">New permits for your county and your trade, in one short email. Free.</span>
               <span class="m-only">New permits for your county, weekly. Free.</span>
             </p>
-            <p class="digest-small">Signup opens at launch &mdash; free, one email a week.</p>
+            <p class="digest-small">Free weekly digest &mdash; one email a week. No spam, unsubscribe anytime.</p>
           </div>
           <form class="digest-form" id="articleDigestForm" novalidate>
             <label class="email-field">
@@ -1706,23 +1707,63 @@
         setPlaceholder();
         if (mq.addEventListener) mq.addEventListener("change", setPlaceholder);
 
-        /* ---------- Digest form (honest pre-launch state) ---------- */
-        var digestForm = document.getElementById("digestForm");
-        var digestDone = document.getElementById("digestDone");
-        digestForm.addEventListener("submit", function (e) {
-          e.preventDefault();
-          var email = document.getElementById("digestEmail").value.trim();
-          if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
-            digestDone.textContent = "Please enter a valid email address.";
-            digestDone.classList.add("show");
-            return;
-          }
-          digestForm.style.display = "none";
-          digestDone.textContent =
-            "Signup opens at launch — the weekly digest is not live yet, so nothing was saved or sent. " +
-            "Wave 1 starts with Texas metros, and the digest begins the week coverage opens.";
-          digestDone.classList.add("show");
-        });
+        /* ---------- Digest signup (live: POST /api/digest) ----------
+           All three digest forms (home, blog, article) share this wiring.
+           Success is shown only when the API returns ok:true. */
+        function wireDigestForm(form, input, done) {
+          if (!form || !input || !done) return;
+          var btn = form.querySelector('button[type="submit"]');
+          var btnLabel = btn ? btn.textContent : "";
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var email = input.value.trim();
+            if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
+              done.textContent = "That email doesn't look right — check it and try again.";
+              done.classList.add("show");
+              return;
+            }
+            if (btn) { btn.disabled = true; btn.textContent = "Joining…"; }
+            fetch("/api/digest", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: email, county: "" })
+            })
+              .then(function (res) {
+                return res
+                  .json()
+                  .catch(function () { return {}; })
+                  .then(function (data) { return { status: res.status, data: data }; });
+              })
+              .then(function (r) {
+                if (r.data && r.data.ok === true) {
+                  input.value = "";
+                  form.style.display = "none";
+                  done.textContent = r.data.already
+                    ? "You're already on the list — you're all set."
+                    : "You're in! Your first digest arrives with the next weekly issue.";
+                  done.classList.add("show");
+                } else if (r.status === 400) {
+                  done.textContent = "That email doesn't look right — check it and try again.";
+                  done.classList.add("show");
+                } else {
+                  done.textContent = "Something went wrong on our side — please try again in a minute.";
+                  done.classList.add("show");
+                }
+              })
+              .catch(function () {
+                done.textContent = "Something went wrong on our side — please try again in a minute.";
+                done.classList.add("show");
+              })
+              .then(function () {
+                if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
+              });
+          });
+        }
+        wireDigestForm(
+          document.getElementById("digestForm"),
+          document.getElementById("digestEmail"),
+          document.getElementById("digestDone")
+        );
 
         /* ---------- Footer panels ---------- */
         var panels = {
@@ -1731,7 +1772,7 @@
           corrections:
             "<strong>Corrections.</strong> We are a mirror of the public record, not the authority. If a figure on a report does not match the official record, we correct or remove it and note the change. The official government record is always the source of truth, and the corrections log opens with the first live reports.",
           privacy:
-            "<strong>Privacy.</strong> PermitsByCounty reports business and project activity from public records; we do not publish homeowner names or consumer personal data. Digest signup opens at launch &mdash; until then, this page does not collect, save, or send email addresses. The full privacy policy publishes at launch.",
+            "<strong>Privacy.</strong> PermitsByCounty reports business and project activity from public records; we do not publish homeowner names or consumer personal data. Digest signup is open: when you join, we save your email address to send the weekly digest &mdash; we never sell it, and every email includes an unsubscribe link. The full privacy policy publishes at launch.",
           terms:
             "<strong>Terms.</strong> PermitsByCounty is an independent public-record reporting service, not a government agency. Reports summarize public records for general information; project values are shown as reported by the source, and we offer no advice, valuations, or endorsements. The full terms of service publish at launch."
         };
@@ -1861,41 +1902,19 @@
           });
         });
 
-        /* ---------- Article digest form (same honest pre-launch state) ---------- */
-        var articleDigestForm = document.getElementById("articleDigestForm");
-        var articleDigestDone = document.getElementById("articleDigestDone");
-        articleDigestForm.addEventListener("submit", function (e) {
-          e.preventDefault();
-          var email = document.getElementById("articleDigestEmail").value.trim();
-          if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
-            articleDigestDone.textContent = "Please enter a valid email address.";
-            articleDigestDone.classList.add("show");
-            return;
-          }
-          articleDigestForm.style.display = "none";
-          articleDigestDone.textContent =
-            "Signup opens at launch — the weekly digest is not live yet, so nothing was saved or sent. " +
-            "Wave 1 starts with Texas metros, and the digest begins the week coverage opens.";
-          articleDigestDone.classList.add("show");
-        });
+        /* ---------- Article digest form (same live wiring) ---------- */
+        wireDigestForm(
+          document.getElementById("articleDigestForm"),
+          document.getElementById("articleDigestEmail"),
+          document.getElementById("articleDigestDone")
+        );
 
-        /* ---------- Blog digest form (same honest pre-launch state) ---------- */
-        var blogDigestForm = document.getElementById("blogDigestForm");
-        var blogDigestDone = document.getElementById("blogDigestDone");
-        blogDigestForm.addEventListener("submit", function (e) {
-          e.preventDefault();
-          var email = document.getElementById("blogDigestEmail").value.trim();
-          if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
-            blogDigestDone.textContent = "Please enter a valid email address.";
-            blogDigestDone.classList.add("show");
-            return;
-          }
-          blogDigestForm.style.display = "none";
-          blogDigestDone.textContent =
-            "Signup opens at launch — the weekly digest is not live yet, so nothing was saved or sent. " +
-            "Wave 1 starts with Texas metros, and the digest begins the week coverage opens.";
-          blogDigestDone.classList.add("show");
-        });
+        /* ---------- Blog digest form (same live wiring) ---------- */
+        wireDigestForm(
+          document.getElementById("blogDigestForm"),
+          document.getElementById("blogDigestEmail"),
+          document.getElementById("blogDigestDone")
+        );
 
         /* ---------- Animated report figures ----------
            Motion only: when the sample report scrolls into view (once), the
