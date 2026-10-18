@@ -453,7 +453,9 @@
         margin-left: 9px;
       }
       .foot-links { display: flex; gap: 10px; align-items: center; padding-top: 8px; flex-wrap: wrap; justify-content: flex-end; }
-      .foot-links button {
+      .foot-links a.foot-a { background: none; border: 0; padding: 4px 2px; font-size: 14.5px; font-weight: 600; color: #54666f; text-decoration: none; }
+        .foot-links a.foot-a:hover { color: var(--teal); }
+        .foot-links button {
         background: none;
         border: 0;
         padding: 4px 2px;
@@ -886,16 +888,19 @@
             <span class="word">PermitsByCounty</span>
           </a>
           <div class="foot-links">
-            <button type="button" data-panel="methodology">Data &amp; methodology</button>
+            <a class="foot-a" href="/data-sources">Data &amp; methodology</a>
             <span class="dot">&middot;</span>
-            <button type="button" data-panel="corrections">Corrections</button>
+            <a class="foot-a" href="/corrections">Corrections</a>
             <span class="dot">&middot;</span>
-            <button type="button" data-panel="privacy">Privacy</button>
+            <a class="foot-a" href="/privacy">Privacy</a>
             <span class="dot">&middot;</span>
-            <button type="button" data-panel="terms">Terms</button>
+            <a class="foot-a" href="/terms">Terms</a>
+            <span class="dot">&middot;</span>
+            <a class="foot-a" href="/about">About</a>
+            <span class="dot">&middot;</span>
+            <a class="foot-a" href="/contact">Contact</a>
           </div>
         </div>
-        <div class="foot-panel" id="footPanel" role="status"></div>
         <p class="foot-line">
           Independent public-record reporting.<span class="d-only"> Not a government agency.</span>
         </p>
@@ -1051,33 +1056,7 @@
           digestDone.classList.add("show");
         });
 
-        /* ---------- Footer panels ---------- */
-        var panels = {
-          methodology:
-            "<strong>Data &amp; methodology.</strong> Reports are built from official public permit records published by county and city governments. Every report names its source jurisdiction and shows the date the source last updated and the date we collected it. Figures are published as reported by the source; we do not estimate missing values. A county goes live only after its feed passes our quality checks &mdash; planned counties are always labeled planned, never live.",
-          corrections:
-            "<strong>Corrections.</strong> We are a mirror of the public record, not the authority. If a figure on a report does not match the official record, we correct or remove it and note the change. The official government record is always the source of truth, and the corrections log opens with the first live reports.",
-          privacy:
-            "<strong>Privacy.</strong> PermitsByCounty reports business and project activity from public records; we do not publish homeowner names or consumer personal data. Digest signup opens at launch &mdash; until then, this page does not collect, save, or send email addresses. The full privacy policy publishes at launch.",
-          terms:
-            "<strong>Terms.</strong> PermitsByCounty is an independent public-record reporting service, not a government agency. Reports summarize public records for general information; project values are shown as reported by the source, and we offer no advice, valuations, or endorsements. The full terms of service publish at launch."
-        };
-        var footPanel = document.getElementById("footPanel");
-        var lastPanel = null;
-        document.querySelectorAll("[data-panel]").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            var key = btn.getAttribute("data-panel");
-            if (lastPanel === key && footPanel.classList.contains("show")) {
-              footPanel.classList.remove("show");
-              lastPanel = null;
-              return;
-            }
-            footPanel.innerHTML = panels[key];
-            footPanel.classList.add("show");
-            lastPanel = key;
-          });
-        });
-      })();
+        })();
     </script>
   </body>
 </html>

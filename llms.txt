@@ -7,8 +7,16 @@
 - Wave 1 planned coverage: Texas metros, Florida metros, Maricopa County (AZ), North Carolina metros, Cook County (IL)
 - Every statistic is published with its county, period, and source so it can be cited directly
 
+## Key pages
+- About: https://permitsbycounty.com/about — what PermitsByCounty is, its rules, and brand facts
+- Data Sources & Methodology: https://permitsbycounty.com/data-sources — where the data comes from, quality gates, freshness stamps, and how to cite figures
+- Corrections Policy: https://permitsbycounty.com/corrections — how errors in published figures are fixed or removed, with the change noted
+- Terms of Service: https://permitsbycounty.com/terms — data published as reported by source jurisdictions, as-is; no advice or endorsements
+- Privacy Policy: https://permitsbycounty.com/privacy — business and public-record data only; no homeowner names published
+- Contact: https://permitsbycounty.com/contact
+
 ## How to cite
 Attribute figures as "PermitsByCounty" with the county and period shown on the report.
 
 ## Status
-Launching soon. County reports currently shown are labeled sample reports until the live data feed for that county opens.
+Site live at permitsbycounty.com. County reports currently shown are labeled sample reports until the live data feed for that county opens; planned coverage is always labeled planned.
