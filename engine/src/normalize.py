@@ -6,9 +6,10 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
 import re
 
-from trades import (classify_boston_trade, classify_cincinnati_trade,
-                    classify_philly_trade, classify_trade, classify_nyc_trade,
-                    classify_sf_trade, classify_seattle_trade)
+from trades import (classify_boston_trade, classify_br_trade,
+                    classify_cincinnati_trade, classify_philly_trade,
+                    classify_trade, classify_nyc_trade, classify_sf_trade,
+                    classify_seattle_trade)
 
 # A real DOB job filing number: borough letter + 8 digits + filing iteration
 # (measured: 125,096 of 125,097 distinct window values; the one exception is
@@ -569,6 +570,86 @@ def normalize_cincinnati(raw, reg):
     }
 
 
+def _br_city(v):
+    """Baton Rouge's city1 is a free-text mailing-city field ('BATON
+    ROUGE', 'Baton R0uge', 'Baton rouge la 70815', 'ZACHARY', 'test', ...).
+    Anything recognizably Baton Rouge — and anything unusable — becomes
+    'Baton Rouge', the issuing jurisdiction's seat (the Austin default);
+    real neighboring localities (Zachary, Baker, Greenwell Springs,
+    Pride, Slaughter, Jackson, Clinton) are carried, title-cased."""
+    s = _clean(v)
+    if not s:
+        return "Baton Rouge"
+    low = s.lower()
+    if "baton" in low or low == "test":
+        return "Baton Rouge"
+    return _title(s) if s.isupper() else s
+
+
+def normalize_baton_rouge(raw, reg):
+    """One collapsed East Baton Rouge Parish permit -> standard record.
+
+    Input is NOT a raw feed row: the pipeline's collapse step (registry
+    collapse_events, key = permitid) has already merged the permit's
+    per-address rows into one dict — the feed's grain is one row per
+    address a permit covers (the San Francisco pattern, measured
+    2026-10-18: 8,500 window rows = 8,482 permits; sibling rows agree on
+    every permit-level field, re-asserted by the collapse on each run).
+    The record is represented by the permit's first row in pull order
+    (issue date, permit id, street address, contractor name); the source
+    publishes no primary-address flag. Privacy: the pull is
+    column-restricted by the registry pull_select — ownername and
+    applicantname (person names) and contractoraddress are never
+    requested from the API at all. The only name carried is
+    contractorname, the permit's published contractor of record ('N/A'
+    names no contractor and stays NULL). Valuation: projectvalue is
+    restated verbatim on a permit's sibling rows, so the collapsed
+    record's figure is the permit's value, counted once (validated
+    2026-10-18 — see registry field_map.valuation). Status: the dataset
+    publishes no status field; it is an issued-permits register, so
+    status is 'issued' by the dataset's own definition. Category: the
+    source's own designation, NULL where the source states none.
+    """
+    sid = _clean(raw.get("permitid"))
+    if not sid:
+        return None
+    address = _clean(raw.get("streetaddress"))
+    if address and address.isupper():
+        address = _title(address)
+    zipc = _clean(raw.get("zip"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _clean(raw.get("contractorname"))
+    if contractor and contractor.strip().upper() in ("N/A", "NA", "NONE"):
+        contractor = None  # the source's no-contractor value names no one
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    cat_src = (_clean(raw.get("designation")) or "").lower()
+    category = cat_src if cat_src in ("residential", "commercial") else None
+    return {
+        "source_record_id": sid,
+        "permit_number": _clean(raw.get("permitnumber")),
+        "address": address,
+        "city": _br_city(raw.get("city1")),
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("permittype")),
+        "trade": classify_br_trade(raw.get("permittype")),
+        "category": category,
+        "project_description": _clean(raw.get("projectdescription")),
+        "valuation": _num(raw.get("projectvalue")),
+        "status": "issued",  # the dataset is an issued-permits register
+        "status_source": None,  # the dataset publishes no status field
+        "application_date": _date(raw.get("creationdate")),
+        "issue_date": _date(raw.get("issueddate")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -580,4 +661,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "nyc-richmond-ny": normalize_nyc,
                "philadelphia-pa": normalize_philadelphia,
                "boston-suffolk-ma": normalize_boston,
-               "cincinnati-hamilton-oh": normalize_cincinnati}
+               "cincinnati-hamilton-oh": normalize_cincinnati,
+               "baton-rouge-east-baton-rouge-la": normalize_baton_rouge}

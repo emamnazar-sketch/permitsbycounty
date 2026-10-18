@@ -58,6 +58,9 @@ TRADE_LABELS = {
     "scaffolding": "Scaffolding", "fire-protection": "Fire Protection",
     # Boston: gas fitting is its own ISD permit family (Gas Permit).
     "gas": "Gas",
+    # Baton Rouge: standby-generator permits are the City-Parish's own
+    # permit family (Generator Permit).
+    "generator": "Generator",
 }
 
 CFG = {
@@ -210,6 +213,44 @@ CFG = {
                      'permit <strong>once</strong> and add its components\' stated costs together '
                      'for its value. And the dataset carries <strong>no electrical permits</strong> '
                      'at all, so no electrical figures appear in this report.</p>'),
+    },
+    "la/east-baton-rouge": {
+        "registry": "baton-rouge-east-baton-rouge-la",
+        "state_name": "Louisiana", "state_abbr": "LA",
+        "county_name": "East Baton Rouge Parish", "crumb_county": "East Baton Rouge Parish, Louisiana",
+        "h1": "Building Permits in East Baton Rouge Parish, Louisiana",
+        "city": "Baton Rouge",
+        "source_short": "East Baton Rouge City-Parish",
+        "source_line": "Baton Rouge open data (data.brla.gov) — building permits issued by the City-Parish Department of Permits and Inspections",
+        "creator": "City of Baton Rouge and Parish of East Baton Rouge",
+        "cite_place": "East Baton Rouge Parish",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Baton Rouge's projectvalue passed validation at permit level
+        # (registry field_map.valuation — published on 100% of permits,
+        # no placeholder or cross-address stamp pathology; the DB sum
+        # must reproduce the independently computed $955,314,596.87):
+        # values publish. The two as-reported shapes are disclosed in
+        # the coverage note below.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is the City-Parish's own designation for each permit "
+                          "(Residential / Commercial), published on 7,378 of the window's "
+                          "8,482 permits; the rest state no designation and are counted in "
+                          "the totals only."),
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the East Baton Rouge City-Parish — "
+                     "counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers construction and occupancy '
+                     'permits issued by the <strong>East Baton Rouge City-Parish</strong> '
+                     '(Department of Permits and Inspections) — the consolidated city-parish '
+                     'government whose dataset covers <strong>all of East Baton Rouge '
+                     'Parish</strong>. Two facts about the parish\'s data shape the figures. '
+                     'The feed lists one row for every address a permit covers, so we count '
+                     'each permit <strong>once</strong> — counts on this page are permits, '
+                     'never raw feed rows. And project values are the applicants\' stated '
+                     'figures, printed as reported: a multi-building project can state its '
+                     'project value on each of its building permits, and occupancy permits — '
+                     'which authorize a use rather than construction — usually state no '
+                     'project value at all.</p>'),
     },
     "il/cook": {
         "registry": "chicago-cook-il",

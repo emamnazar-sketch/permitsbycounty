@@ -310,6 +310,59 @@ def classify_cincinnati_trade(components=()):
     return "general"
 
 
+import re as _re
+
+_BR_SUFFIX_RE = _re.compile(r"\s*\([RC]\)\s*$")
+
+
+def classify_br_trade(permit_type=""):
+    """Baton Rouge (data.brla.gov 7fq7-8j7r, EBR Building Permits) trade
+    classification.
+
+    The parish's permittype names the permit family directly, and its
+    (R)/(C) suffix restates the permit's Residential/Commercial
+    designation, so classification is an exact match on the suffix-free
+    type name — no description mining (the Cincinnati trap: free text
+    misleads; the named families do not). The licensed-trade families the
+    City-Parish files separately win their own trades (re-roof, electrical,
+    gas test, plumbing, mechanical = HVAC, solar, fence, sign, demolition);
+    generator permits are the parish's own permit family (239 window
+    permits) and classify as their own trade, the treatment Boston gave
+    its gas family. New Building (incl. the Shell Only variant) is new
+    construction — matched by exact name so 'Cell Tower (New Const)'
+    cannot leak in. Occupancy permits, the Existing Building
+    remodel/addition family, accessory structures, and the long tail of
+    use/site permits name no licensed trade and land in 'general'.
+    Deterministic, first match wins; records no rule claims land in
+    'general' and are counted in the run report. Kept separate so other
+    counties cannot be disturbed.
+    """
+    base = _BR_SUFFIX_RE.sub("", (permit_type or "").strip()).strip()
+    if base == "Re-Roof":
+        return "roofing"
+    if base == "Electrical Permit":
+        return "electrical"
+    if base == "Gas Test Permit":
+        return "gas"
+    if base == "Generator Permit":
+        return "generator"
+    if base in ("New Building Permit", "New Building", "New Building (Shell Only)"):
+        return "new-construction"
+    if base == "Demolition Permit":
+        return "demolition"
+    if base.startswith("Sign Permit"):
+        return "signage"
+    if base == "Plumbing Permit":
+        return "plumbing"
+    if base.startswith("Mechanical Permit"):
+        return "hvac"
+    if base == "Solar Permit":
+        return "solar"
+    if base == "Fence Permit":
+        return "fencing"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 
