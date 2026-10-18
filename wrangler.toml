@@ -1,0 +1,8 @@
+name = "permitsbycounty"
+compatibility_date = "2026-10-18"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "permitsbycounty"
+database_id = "1684f1bd-d727-4720-9499-389edb63ad90"

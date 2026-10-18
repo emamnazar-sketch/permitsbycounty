@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
-:root{--navy:#102c40;--teal:#087f76;--teal-dark:#06685f;--bg:#f6f8f7;--ink:#16242e;--body:#2b3d47;--muted:#64757e;--border:#dfe7e3;--serif:"Playfair Display",Georgia,"Times New Roman",serif;--sans:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif}
+:root{--navy:#102c40;--teal:#087f76;--teal-dark:#06685f;--bg:#f6f8f7;--ink:#000;--body:#000;--muted:#000;--border:#dfe7e3;--serif:"Playfair Display",Georgia,"Times New Roman",serif;--sans:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif}
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--sans);color:var(--body);background:#fff;-webkit-font-smoothing:antialiased}
 a{color:var(--teal);text-decoration:none}
@@ -28,15 +28,15 @@ nav.main a.cta{background:var(--teal);color:#fff;border-radius:7px;padding:10px 
 nav.main a.cta:hover{background:var(--teal-dark);color:#fff}
 main .wrap{max-width:1020px}
 .doc{padding-top:44px;padding-bottom:20px}
-.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:0 0 12px}
-h1{font-family:var(--serif);font-weight:800;color:var(--navy);font-size:44px;line-height:1.1;letter-spacing:-.015em;margin:0 0 14px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#000;margin:0 0 12px}
+h1{font-family:var(--serif);font-weight:800;color:#000;font-size:44px;line-height:1.1;letter-spacing:-.015em;margin:0 0 14px}
 .lede{font-size:19px;line-height:1.55;color:var(--body);margin:0 0 8px}
 .stamp{font-size:14px;color:var(--muted);margin:0 0 6px}
-h2{font-family:var(--serif);font-weight:800;color:var(--navy);font-size:27px;line-height:1.2;margin:34px 0 10px}
+h2{font-family:var(--serif);font-weight:800;color:#000;font-size:27px;line-height:1.2;margin:34px 0 10px}
 p{font-size:16.5px;line-height:1.65;margin:0 0 14px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:24px 0 6px}
 .stat{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
-.stat .num{font-family:var(--serif);font-weight:800;color:var(--navy);font-size:32px;line-height:1.05}
+.stat .num{font-family:var(--serif);font-weight:800;color:#000;font-size:32px;line-height:1.05}
 .stat .lab{font-size:14px;color:var(--muted);margin-top:5px}
 table.data{width:100%;border-collapse:collapse;margin:14px 0 8px;font-size:15.5px}
 table.data th{text-align:left;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);padding:8px 10px}
@@ -44,17 +44,17 @@ table.data td{border-bottom:1px solid var(--border);padding:9px 10px;vertical-al
 table.data td.n,table.data th.n{text-align:right;font-variant-numeric:tabular-nums}
 .cite{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:22px 0;font-size:15px}
 .qa{border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:12px 0}
-.qa h3{margin:0 0 6px;font-size:17.5px;color:var(--navy)}
+.qa h3{margin:0 0 6px;font-size:17.5px;color:#000}
 .qa p{margin:0;font-size:16px}
 .note{font-size:14.5px;color:var(--muted)}
 footer.site{background:#fff;border-top:1px solid #eef2f0;padding:24px 0 14px;margin-top:44px}
 .foot-in{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
-.word{font-family:var(--serif);font-weight:800;font-size:20px;color:var(--navy);letter-spacing:-.01em;white-space:nowrap}
+.word{font-family:var(--serif);font-weight:800;font-size:20px;color:#000;letter-spacing:-.01em;white-space:nowrap}
 .foot-links{display:flex;gap:10px;align-items:center;padding-top:8px;flex-wrap:wrap;justify-content:flex-end}
-.foot-links a{font-size:14.5px;font-weight:600;color:#54666f}
+.foot-links a{font-size:14.5px;font-weight:600;color:#000}
 .foot-links a:hover{color:var(--teal);text-decoration:none}
-.foot-links .dot{color:#b7c3c8}
-.foot-line{text-align:center;color:#93a3ab;font-size:13.5px;margin:20px 0 4px}
+.foot-links .dot{color:#000}
+.foot-line{text-align:center;color:#000;font-size:13.5px;margin:20px 0 4px}
 @media (max-width:760px){
   .header-in{height:auto;padding-top:14px;padding-bottom:14px;flex-wrap:wrap}
   nav.main{gap:16px;flex-wrap:wrap}
@@ -68,7 +68,7 @@ footer.site{background:#fff;border-top:1px solid #eef2f0;padding:24px 0 14px;mar
 }
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://permitsbycounty.com/"}, {"@type": "ListItem", "position": 2, "name": "Travis County, Texas", "item": "https://permitsbycounty.com/tx/travis/"}, {"@type": "ListItem", "position": 3, "name": "October 2026", "item": "https://permitsbycounty.com/tx/travis/2026-10/"}]}</script>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Dataset", "name": "Austin construction permits October 2026", "description": "Construction permits issued by the City of Austin in October 2026.", "url": "https://permitsbycounty.com/tx/travis/2026-10/", "dateModified": "2026-10-17", "creator": {"@type": "Organization", "name": "City of Austin"}, "publisher": {"@type": "Organization", "name": "PermitsByCounty", "url": "https://permitsbycounty.com/"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Dataset", "name": "Austin construction permits October 2026", "description": "Construction permits issued by the City of Austin in October 2026.", "url": "https://permitsbycounty.com/tx/travis/2026-10/", "dateModified": "2026-10-18", "creator": {"@type": "Organization", "name": "City of Austin"}, "publisher": {"@type": "Organization", "name": "PermitsByCounty", "url": "https://permitsbycounty.com/"}}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How many construction permits were issued in Austin in October 2026?", "acceptedAnswer": {"@type": "Answer", "text": "2,368 construction permits were issued in Austin in October 2026. The busiest trade was Electrical with 717 permits, as reported by the City of Austin."}}]}</script>
 </head>
 <body>
@@ -89,9 +89,9 @@ footer.site{background:#fff;border-top:1px solid #eef2f0;padding:24px 0 14px;mar
     <p class="eyebrow">Monthly archive &middot; Travis County, Texas</p>
     <h1>Austin Building Permits — October 2026</h1>
     <p class="lede">Every construction permit issued by the City of Austin in October 2026: counts, permits by trade, and the month&#x27;s most recent permits.</p>
-    <p class="stamp">Source: City of Austin open data — issued construction permits. Source last updated: October 17, 2026 &middot; Our last pull: October 17, 2026 &middot; Figures are as reported by the City of Austin.</p>
+    <p class="stamp">Source: City of Austin open data — issued construction permits. Source last updated: October 17, 2026 &middot; Our last pull: October 18, 2026 &middot; Figures are as reported by the City of Austin.</p>
     <p class="note">Coverage: this report covers construction permits issued by the <strong>City of Austin</strong>. The city's permitting jurisdiction reaches beyond the city limits — including its extraterritorial jurisdiction and a few neighboring communities that use Austin's permitting — so totals here are City of Austin feed totals for the Travis County report, labeled as such, never blended with other jurisdictions' records. County-wide coverage is not implied.</p>
-    <p class="note">Month to date: figures run through October 16, 2026, the latest date in the source data as of our October 17, 2026 pull.</p>
+    <p class="note">Month to date: figures run through October 16, 2026, the latest date in the source data as of our October 18, 2026 pull.</p>
     <div class="stats">
       <div class="stat"><div class="num">2,368</div><div class="lab">Permits issued, October 2026</div></div>
       <div class="stat"><div class="num">Electrical</div><div class="lab">Top trade (717 permits)</div></div>
