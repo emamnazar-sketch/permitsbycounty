@@ -1,0 +1,75 @@
+{
+ "api_base": "https://data.cityofchicago.org/resource/ydr8-5enu.json",
+ "audit_2026_10_17": {
+  "dataset_rows_updated_at": "2026-10-17T12:18:17Z",
+  "rows_application_last_12mo": 29038,
+  "rows_with_issue_date_last_30d": 2915,
+  "total_rows": 850686,
+  "verdict": "PASS \u2014 daily cadence confirmed (updated same day as audit), fields rich (contractor roles, valuation, description), volume healthy."
+ },
+ "county": "Cook County",
+ "county_fips": "17031",
+ "county_slug": "il/cook",
+ "coverage_note": "City of Chicago municipal building permits only. Chicago sits inside Cook County; suburban Cook County permits are NOT in this feed and are never implied.",
+ "dataset_id": "ydr8-5enu",
+ "date_onboarded": "2026-10-17",
+ "field_map": {
+  "address_parts": [
+   "street_number",
+   "street_direction",
+   "street_name"
+  ],
+  "application_date": "application_start_date",
+  "contractor_rule": "Scan contact_1..contact_15; take the first contact whose type contains 'CONTRACTOR' (business role as published). All other contact types (applicant/owner/etc.) are NEVER stored \u2014 SOP \u00a73 rule 1.",
+  "issue_date": "issue_date",
+  "locality": "constant: Chicago",
+  "permit_number": "permit_",
+  "permit_type_source": "permit_type",
+  "project_description": "work_description",
+  "source_record_id": "id",
+  "status_source": "permit_status",
+  "valuation": "reported_cost",
+  "work_type_source": "work_type",
+  "zip": null
+ },
+ "history_range": "2006\u2013present (850,686 rows at audit)",
+ "jurisdiction": "Chicago",
+ "jurisdiction_label": "City of Chicago, Cook County",
+ "license": "See Terms of Use (City of Chicago); attribution: City of Chicago",
+ "live_2026_10_17": {
+  "backfill": "dual-window: application_start_date >= 2025-10-17 (29,149 rows) + issue_date >= 2025-10-17 (31,746 rows); union = 31,746 unique permits",
+  "known_source_quirks": "Some Chicago trade permits carry the parent project's full reported_cost (e.g. a $615.5M low-voltage electrical permit at 307 N Michigan Ave). We mirror as reported, per SOP rule 2; descriptions shown alongside make the scope transparent.",
+  "pages_detail": "county hub + 12 trade pages + 13 monthly archives under /il/cook/",
+  "pages_published": 26,
+  "permits_in_db": 31746,
+  "qa_result": "Gates 1-5 PASS, 0 records held. Gate 4 count-match drift 0 on the issue-window pull. Manual review (SOP onboarding step 5): 5 sampled records cross-checked field-by-field against the live API - exact; contractor rule verified (first CONTRACTOR-role contact only; owner/applicant person names never stored); September 2026 aggregate equals the source's own count and sum exactly (3,179 permits / $684,261,493.71).",
+  "reported_value_trailing_12mo_usd": 10958253155
+ },
+ "qa_thresholds": {
+  "backfill_expected_volume_12mo": 29038,
+  "backfill_volume_tolerance": 0.25,
+  "freshness_max_age_hours": 48,
+  "valuation_max_plausible_usd": 2000000000
+ },
+ "rate_limit": "Socrata anonymous tier; paged at 5,000 rows/request with polite pacing. No app token configured.",
+ "refresh_tier": 1,
+ "registry_status": "live",
+ "source_name": "City of Chicago Open Data \u2014 Building Permits",
+ "source_type": "socrata",
+ "source_url": "https://data.cityofchicago.org/Buildings/Building-Permits/ydr8-5enu",
+ "state": "IL",
+ "status_map": {
+  "ACTIVE": "active",
+  "CANCELLED": "cancelled",
+  "COMPLETE": "complete",
+  "EXPIRED": "expired",
+  "NULL_OR_MISSING": "not-stated",
+  "PHASED PERMITTING": "phased",
+  "REVOKED": "revoked",
+  "SUSPENDED": "suspended"
+ },
+ "terms_status": "verified-open-2026-10-17: dataset published for public reuse with attribution to City of Chicago (portal license: 'See Terms of Use'; attribution required, no endorsement implied). SOP rule 2 stamping applies.",
+ "update_cadence": "daily",
+ "watermark_field": "application_start_date + id (paged pull ordered by application_start_date, id)",
+ "wave": "wave-1"
+}

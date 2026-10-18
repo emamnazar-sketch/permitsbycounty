@@ -8,6 +8,7 @@
 - Every statistic is published with its county, period, and source so it can be cited directly
 
 ## Key pages
+- Cook County (Chicago), Illinois — LIVE county report: https://permitsbycounty.com/il/cook/ — building permits issued by the City of Chicago: monthly counts, reported values, permits by trade, biggest projects; updated daily; figures as reported by the City of Chicago
 - About: https://permitsbycounty.com/about — what PermitsByCounty is, its rules, and brand facts
 - Data Sources & Methodology: https://permitsbycounty.com/data-sources — where the data comes from, quality gates, freshness stamps, and how to cite figures
 - Corrections Policy: https://permitsbycounty.com/corrections — how errors in published figures are fixed or removed, with the change noted
@@ -19,4 +20,4 @@
 Attribute figures as "PermitsByCounty" with the county and period shown on the report.
 
 ## Status
-Site live at permitsbycounty.com. County reports currently shown are labeled sample reports until the live data feed for that county opens; planned coverage is always labeled planned.
+Site live at permitsbycounty.com. First live county report: Cook County, Illinois (City of Chicago permits), published October 17, 2026 and updated daily. Austin, San Francisco, and Seattle feeds are in onboarding. Planned coverage is always labeled planned, and any example report is labeled a sample with illustrative figures.
