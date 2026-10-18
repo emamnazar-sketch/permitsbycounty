@@ -194,6 +194,80 @@ def classify_nyc_trade(work_types=(), description=""):
     return "general"
 
 
+def classify_boston_trade(permit_type_descr="", worktype="", description=""):
+    """Boston (data.boston.gov CKAN, Approved Building Permits) trade
+    classification.
+
+    Two source signals compete: permittypedescr names the LICENSE family
+    (Electrical Permit, Plumbing Permit, Gas Permit...), while worktype
+    names the WORK actually performed (SOL, FA, ROOF...). Where ISD's own
+    taxonomy separates a work family from the generic electrical code —
+    SOL (solar) and FA (fire alarm) are distinct worktypes, not ELECTRICAL
+    — the work wins over the license: a solar array filed on an electrical
+    permit is a solar job (753 of the window's 1,462 SOL rows sit on
+    Electrical Permits; measured 2026-10-18). The unambiguous work codes
+    therefore fire first: SOL solar, RAZE + EXTDEM demolition, ROOF
+    roofing, SIGNES signs, FA fire alarm, SPRINK sprinklers (fire
+    protection, the NYC treatment), ERECT new construction, FENCE fencing.
+    The one trap, handled exactly as Philadelphia handled its 'EZ Interior
+    Non-Load-Bearing Wall Demo': INTDEM (interior demolition) is interior
+    alteration work, NOT demolition — it is deliberately excluded from the
+    demolition rule (EXTDEM, exterior demolition, is genuine demolition).
+    The license-family permit types fire next, then the remaining trade
+    worktype codes, then the scope text (comments, else the short
+    description) as keyword fallback. Gas fitting is its own Boston permit
+    family (3,062 window permits) and classifies as its own trade, 'gas'.
+    Deterministic, first match wins; records no rule claims land in
+    'general' and are counted in the run report. Kept separate so other
+    counties cannot be disturbed.
+    """
+    pt = (permit_type_descr or "").strip()
+    wt = (worktype or "").strip().upper()
+    d = (description or "").lower()
+    if pt == "Electrical Fire Alarms":
+        return "fire-alarm"
+    if wt == "SOL":
+        return "solar"
+    if wt in ("RAZE", "EXTDEM"):
+        return "demolition"
+    if wt == "ROOF":
+        return "roofing"
+    if wt == "SIGNES":
+        return "signage"
+    if wt == "FA":
+        return "fire-alarm"
+    if wt == "SPRINK":
+        return "fire-protection"
+    if wt == "ERECT":
+        return "new-construction"
+    if wt in ("FENCE", "FENCE2"):
+        return "fencing"
+    if pt in ("Electrical Permit", "Electrical Low Voltage",
+              "Electrical Temporary Service"):
+        return "electrical"
+    if pt == "Plumbing Permit":
+        return "plumbing"
+    if pt == "Gas Permit":
+        return "gas"
+    if pt == "Erect/New Construction":
+        return "new-construction"
+    if wt in ("ELECTRICAL", "LVOLT", "TMPSER"):
+        return "electrical"
+    if wt == "PLUMBING":
+        return "plumbing"
+    if wt == "GAS":
+        return "gas"
+    if _contains(d, HVAC):
+        return "hvac"
+    if _contains(d, PLUMB):
+        return "plumbing"
+    if _contains(d, ELEC):
+        return "electrical"
+    if _contains(d, ROOF):
+        return "roofing"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

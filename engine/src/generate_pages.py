@@ -56,6 +56,8 @@ TRADE_LABELS = {
     # NYC DOB NOW trades (scaffolding incl. sidewalk sheds is a first-class
     # NYC filing type; sprinklers/standpipe file as fire protection).
     "scaffolding": "Scaffolding", "fire-protection": "Fire Protection",
+    # Boston: gas fitting is its own ISD permit family (Gas Permit).
+    "gas": "Gas",
 }
 
 CFG = {
@@ -141,6 +143,38 @@ CFG = {
                      'covers the whole of Philadelphia County. The city\'s feed publishes no '
                      'project-cost field, so this report publishes permit counts, trades, and '
                      'categories — no dollar figures.</p>'),
+    },
+    "ma/suffolk": {
+        "registry": "boston-suffolk-ma",
+        "state_name": "Massachusetts", "state_abbr": "MA",
+        "county_name": "Suffolk County", "crumb_county": "Suffolk County, Massachusetts",
+        "h1": "Building Permits in Suffolk County, Massachusetts",
+        "city": "Boston",
+        "source_short": "City of Boston",
+        "source_line": "City of Boston open data — approved building permits issued by the Inspectional Services Department",
+        "creator": "City of Boston",
+        "cite_place": "Suffolk County (Boston)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Boston's declared_valuation passed validation on the full window
+        # (registry field_map.valuation — 100% on-pattern, 97.9% above $1,
+        # no placeholder/stamp pathology at scale; DB sum reproduces the
+        # source-side parsed sum $12,753,401,142.08 to the cent): values
+        # publish. The one quirk is disclosed in the coverage note below:
+        # Certificates of Occupancy restate their project's declared value
+        # at the same address (the Chicago as-reported treatment).
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City of Boston — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Boston</strong> (Inspectional Services Department). Suffolk '
+                     'County also contains Chelsea, Revere, and Winthrop, which publish their '
+                     'permits separately and are not in this feed, so totals here are Boston '
+                     'totals — labeled as such, never blended. Values are the declared project '
+                     'values applicants reported to the city, printed as reported; a '
+                     'Certificate of Occupancy restates its project\'s declared value, so one '
+                     'project\'s value can appear on both its building permit and its '
+                     'certificate.</p>'),
     },
     "il/cook": {
         "registry": "chicago-cook-il",

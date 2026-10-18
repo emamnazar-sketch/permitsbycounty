@@ -6,8 +6,9 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
 import re
 
-from trades import (classify_philly_trade, classify_trade, classify_nyc_trade,
-                    classify_sf_trade, classify_seattle_trade)
+from trades import (classify_boston_trade, classify_philly_trade,
+                    classify_trade, classify_nyc_trade, classify_sf_trade,
+                    classify_seattle_trade)
 
 # A real DOB job filing number: borough letter + 8 digits + filing iteration
 # (measured: 125,096 of 125,097 distinct window values; the one exception is
@@ -385,6 +386,79 @@ def normalize_philadelphia(raw, reg):
     }
 
 
+def _money(v):
+    """Boston's declared_valuation is a formatted string ('$36,500.00')."""
+    s = _clean(v)
+    if not s:
+        return None
+    try:
+        return float(s.replace("$", "").replace(",", "").strip())
+    except ValueError:
+        return None
+
+
+def normalize_boston(raw, reg):
+    """One raw Boston row -> standard record dict (or None if unusable id).
+
+    Identity (registry dedupe_rule): the permit number is exactly unique
+    in the trailing-12-month window (36,367 rows = 36,367 distinct
+    permitnumber, measured 2026-10-18) — source_record_id = permitnumber,
+    no collapsing. Privacy: the pull is column-restricted by the registry
+    pull_select — `applicant`, the dataset's only name field, carries
+    PERSON names and is never requested from the API at all; the schema
+    publishes no contractor/business field, so contractor stays NULL,
+    never inferred (the San Francisco treatment). Valuation:
+    declared_valuation parsed from its formatted string and stored as
+    reported (validated 2026-10-18 — see registry field_map.valuation;
+    Certificates of Occupancy restating a project's value at the same
+    address are the source's own shape, mirrored per SOP rule 2).
+    Application date: the dataset publishes no application-date column,
+    so it stays NULL by construction (the Philadelphia treatment).
+    Category: occupancytype is a building occupancy class, not a permit
+    category — NULL (the Chicago/SF/NYC honest-NULL treatment).
+    """
+    sid = _clean(raw.get("permitnumber"))
+    if not sid:
+        return None
+    address = _clean(raw.get("address"))
+    if address and address.isupper():
+        address = _title(address)
+    city = _clean(raw.get("city"))
+    if city and city.isupper():
+        city = _title(city)
+    if not city:
+        city = "Boston"  # issuing jurisdiction's seat; mirrors Austin's default
+    status_src = _clean(raw.get("status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    comments = _clean(raw.get("comments"))
+    descr = _clean(raw.get("description"))
+    scope = comments or descr
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zip")),
+        "permit_type": _clean(raw.get("permittypedescr")) or _clean(raw.get("worktype")),
+        "trade": classify_boston_trade(raw.get("permittypedescr"),
+                                       raw.get("worktype"),
+                                       f"{comments or ''} {descr or ''}"),
+        "category": None,  # occupancy class is not a permit category; honest NULL
+        "project_description": scope,
+        "valuation": _money(raw.get("declared_valuation")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": None,  # source publishes no application-date column
+        "issue_date": _date(raw.get("issued_date")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": None,  # only name field is `applicant` (persons) — never pulled
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -394,4 +468,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "nyc-queens-ny": normalize_nyc,
                "nyc-bronx-ny": normalize_nyc,
                "nyc-richmond-ny": normalize_nyc,
-               "philadelphia-pa": normalize_philadelphia}
+               "philadelphia-pa": normalize_philadelphia,
+               "boston-suffolk-ma": normalize_boston}

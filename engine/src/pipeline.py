@@ -26,6 +26,7 @@ sys.path.insert(0, HERE)
 
 import socrata
 import carto
+import ckan
 import normalize as nz
 import qa
 
@@ -171,6 +172,13 @@ def main():
         stamp_iso = carto.dataset_updated_at(reg["api_base"], reg["carto_table"],
                                              reg["freshness_stamp_field"])
         updated_dt = datetime.fromisoformat(str(stamp_iso).replace("Z", "+00:00"))
+    elif reg["source_type"] == "ckan":
+        # CKAN registries stamp freshness from the datastore resource's own
+        # last_modified (package_show) — see ckan.py.
+        ds_name = reg["dataset_id"]
+        stamp_iso = ckan.dataset_updated_at(reg["api_base"], reg["dataset_id"],
+                                            reg["resource_id"])
+        updated_dt = datetime.fromisoformat(str(stamp_iso).replace("Z", "+00:00"))
     else:
         updated_epoch, ds_name = socrata.dataset_updated_at(domain, reg["dataset_id"])
         updated_dt = datetime.fromtimestamp(updated_epoch, timezone.utc)
@@ -197,6 +205,9 @@ def main():
     if reg["source_type"] == "carto":
         report["expected_pull_count"] = carto.count_where(reg["api_base"],
                                                           reg["carto_table"], where)
+    elif reg["source_type"] == "ckan":
+        report["expected_pull_count"] = ckan.count_where(reg["api_base"],
+                                                         reg["resource_id"], where)
     else:
         report["expected_pull_count"] = socrata.count_where(reg["api_base"], where)
     # Paging order keys on the source's uniqueness field (registry
@@ -208,6 +219,10 @@ def main():
         manifest = carto.pull_window(reg["api_base"], reg["carto_table"],
                                      reg["pull_select"], where, order,
                                      vault_dir, run_stamp)
+    elif reg["source_type"] == "ckan":
+        manifest = ckan.pull_window(reg["api_base"], reg["resource_id"],
+                                    reg["pull_select"], where, order,
+                                    vault_dir, run_stamp)
     else:
         manifest = socrata.pull_window(reg["api_base"], where,
                                        order, vault_dir, run_stamp,
@@ -222,7 +237,12 @@ def main():
     for page in manifest["pages"]:
         with open(os.path.join(vault_dir, page["file"])) as fh:
             payload = json.load(fh)
-        rows = payload["rows"] if isinstance(payload, dict) else payload
+        if isinstance(payload, dict) and "rows" in payload:
+            rows = payload["rows"]  # Carto envelope
+        elif isinstance(payload, dict) and isinstance(payload.get("result"), dict):
+            rows = payload["result"]["records"]  # CKAN envelope
+        else:
+            rows = payload  # Socrata: the body is the row array itself
         ref = f"{os.path.basename(vault_dir)}/{page['file']}"
         for raw in rows:
             stream.append((raw, ref))
