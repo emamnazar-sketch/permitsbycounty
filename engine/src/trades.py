@@ -64,3 +64,39 @@ def classify_trade(permit_type="", work_type="", description=""):
     if _contains(d, ELEC):
         return "electrical"
     return "general"
+
+
+def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
+    """San Francisco (DataSF i98e-djp9) trade classification.
+
+    SF's permit_type_definition is a *process* category, not a trade: 91%
+    of the trailing-12-month window is 'otc alterations permit'. The trade
+    signal lives in the source's own flags first (reroof, fire_only_permit),
+    then the work description. Deterministic, first match wins; records no
+    rule claims land in 'general' and are counted in the run report.
+    Kept separate from classify_trade so Chicago/Austin classification
+    cannot be disturbed.
+    """
+    dt = (definition or "").lower()
+    d = (description or "").lower()
+    if "demolition" in dt:
+        return "demolition"
+    if "new construction" in dt:
+        return "new-construction"
+    if "sign" in dt:
+        return "signage"
+    if (reroof or "").strip().upper() == "Y":
+        return "roofing"
+    if _contains(d, SOLAR):
+        return "solar"
+    if (fire_only or "").strip().upper() == "Y":
+        return "fire-alarm"
+    if _contains(d, HVAC):
+        return "hvac"
+    if _contains(d, PLUMB):
+        return "plumbing"
+    if _contains(d, ELEC):
+        return "electrical"
+    if _contains(d, ROOF):
+        return "roofing"
+    return "general"

@@ -4,7 +4,7 @@ Privacy rule (SOP section 3 rule 1) is enforced HERE, at the only door data
 enters through: person-name fields are never copied. Chicago: only contacts
 whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
-from trades import classify_trade
+from trades import classify_trade, classify_sf_trade
 
 
 def _clean(v):
@@ -143,5 +143,58 @@ def normalize_austin(raw, reg):
     }
 
 
+def normalize_sf(raw, reg):
+    """One raw San Francisco row -> standard record dict (or None).
+
+    Dedupe (registry dedupe_rule): the pull is restricted to the permit's
+    primary-address record (primary_address_flag='Y'), so each permit_number
+    arrives exactly once; source_record_id = record_id (the source's row id,
+    unique per row). Privacy: this dataset publishes no contractor field and
+    no applicant/owner person fields at all, and the pull is additionally
+    column-restricted by the registry pull_select — contractor stays NULL,
+    never inferred.
+    Valuation (registry field_map): revised_cost when it is a real figure
+    (> $1), else estimated_cost; $1 placeholders stay $1 as reported.
+    """
+    sid = _clean(raw.get("record_id"))
+    if not sid:
+        return None
+    parts = [_clean(raw.get("street_number")), _clean(raw.get("street_number_suffix")),
+             _clean(raw.get("street_name")), _clean(raw.get("street_suffix"))]
+    address = " ".join(p for p in parts if p)
+    if address and address.isupper():
+        address = _title(address)
+    address = address or None
+    rev, est = _num(raw.get("revised_cost")), _num(raw.get("estimated_cost"))
+    valuation = rev if (rev is not None and rev > 1) else est
+    status_src = _clean(raw.get("status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    definition = _clean(raw.get("permit_type_definition")) or _clean(raw.get("permit_type"))
+    return {
+        "source_record_id": sid,
+        "permit_number": _clean(raw.get("permit_number")),
+        "address": address,
+        "city": "San Francisco",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zipcode")),
+        "permit_type": definition,
+        "trade": classify_sf_trade(definition, raw.get("description"),
+                                   raw.get("reroof"), raw.get("fire_only_permit")),
+        "category": None,  # source publishes no residential/commercial class; honest NULL
+        "project_description": _clean(raw.get("description")),
+        "valuation": valuation,
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("filed_date")),
+        "issue_date": _date(raw.get("issued_date")),
+        "source_updated_date": _date(raw.get("data_loaded_at")),
+        "contractor_name": None,  # dataset publishes no contractor field (registry rule)
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
-               "austin-travis-tx": normalize_austin}
+               "austin-travis-tx": normalize_austin,
+               "san-francisco-ca": normalize_sf}

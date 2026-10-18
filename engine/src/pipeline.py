@@ -90,7 +90,7 @@ def main():
     ap.add_argument("--registry", required=True)
     ap.add_argument("--since", required=True, help="window field >= this ISO date")
     ap.add_argument("--field", default="application_start_date",
-                    choices=["application_start_date", "applieddate", "issue_date"],
+                    choices=["application_start_date", "applieddate", "issue_date", "issued_date"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -117,6 +117,14 @@ def main():
     vault_dir = os.path.join(ENGINE, "data", "vault", args.registry,
                              f"backfill-{args.field}-{args.since}")
     where = f"{args.field} >= '{args.since}T00:00:00'"
+    # Registry pull_where_extra: an additional row restriction that is part
+    # of the source's identity rules — e.g. San Francisco's pull is limited
+    # to each permit's primary-address record (registry dedupe_rule). The
+    # expected-count baseline below is computed on the identical where, so
+    # gate 4 still compares like with like.
+    if reg.get("pull_where_extra"):
+        where += f" AND {reg['pull_where_extra']}"
+        report["pull_where_extra"] = reg["pull_where_extra"]
     report["window_field"] = args.field
     report["expected_pull_count"] = socrata.count_where(reg["api_base"], where)
     # Paging order keys on the source's uniqueness field (registry
@@ -172,7 +180,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

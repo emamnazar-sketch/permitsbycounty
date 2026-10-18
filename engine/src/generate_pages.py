@@ -56,6 +56,33 @@ TRADE_LABELS = {
 }
 
 CFG = {
+    "ca/san-francisco": {
+        "registry": "san-francisco-ca",
+        "state_name": "California", "state_abbr": "CA",
+        "county_name": "San Francisco County", "crumb_county": "San Francisco County, California",
+        "h1": "Building Permits in San Francisco, California",
+        "city": "San Francisco",
+        "source_short": "City and County of San Francisco",
+        "source_line": "San Francisco open data (DataSF) — building permits issued by the Department of Building Inspection",
+        "creator": "City and County of San Francisco",
+        "cite_place": "San Francisco",
+        "noun": "building permits", "noun_singular": "building permit",
+        # SF costs passed validation on the deduped set (registry
+        # field_map.valuation — 86% real-cost coverage, TTM sum verified
+        # against the source to the dollar): values publish.
+        "show_valuation": True, "show_category": False,
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City and County of San Francisco — "
+                     "counted, valued, and sorted by trade. Free, and updated nightly."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City and County of San Francisco</strong> (a consolidated city-county, '
+                     'so the feed covers the whole county). One counting rule matters here: San '
+                     'Francisco\'s Department of Building Inspection publishes one row for every '
+                     'address or lot a permit touches, so one permit can appear several times in '
+                     'the raw feed. We count each permit <strong>once</strong>, at the address the '
+                     'department flags as primary — counts on this page are permits, never raw '
+                     'feed rows.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",
@@ -405,7 +432,12 @@ def generate(con, slug):
                             "WHERE county_id=? GROUP BY trade ORDER BY 2 DESC",
                             (county_id,)).fetchall()
     paged_trades = {t for t, n, _ in trades_12 if t != "general" and n >= TRADE_PAGE_MIN}
-    top_trade = trades_12[0]
+    # "Top trade" names a real trade: when 'general' (the unclassified
+    # bucket) leads a county — San Francisco, where most permits are small
+    # alterations whose descriptions name no trade — the headline trade is
+    # the largest classified one. Identical output where a real trade
+    # already leads (Cook, Travis: electrical is #1 in both).
+    top_trade = next((r for r in trades_12 if r[0] != "general"), trades_12[0])
     cite = (f"PermitsByCounty data, {cfg['cite_place']}, {month_label(ctx.last_full_month)} "
             f"· Source: {src}")
     hub_url = f"https://permitsbycounty.com/{slug}/"
