@@ -9,6 +9,7 @@
 
 ## Key pages
 - Cook County (Chicago), Illinois — LIVE county report: https://permitsbycounty.com/il/cook/ — building permits issued by the City of Chicago: monthly counts, reported values, permits by trade, biggest projects; updated daily; figures as reported by the City of Chicago
+- Travis County (Austin), Texas — LIVE county report: https://permitsbycounty.com/tx/travis/ — construction permits issued by the City of Austin: monthly counts, permits by trade and category (residential/commercial), monthly archives; updated daily; figures as reported by the City of Austin. Project values are not published for this feed yet — its valuation field failed validation (see Data Sources & Methodology)
 - About: https://permitsbycounty.com/about — what PermitsByCounty is, its rules, and brand facts
 - Data Sources & Methodology: https://permitsbycounty.com/data-sources — where the data comes from, quality gates, freshness stamps, and how to cite figures
 - Corrections Policy: https://permitsbycounty.com/corrections — how errors in published figures are fixed or removed, with the change noted
@@ -20,4 +21,4 @@
 Attribute figures as "PermitsByCounty" with the county and period shown on the report.
 
 ## Status
-Site live at permitsbycounty.com. First live county report: Cook County, Illinois (City of Chicago permits), published October 17, 2026 and updated daily. Austin, San Francisco, and Seattle feeds are in onboarding. Planned coverage is always labeled planned, and any example report is labeled a sample with illustrative figures.
+Site live at permitsbycounty.com. Live county reports: Cook County, Illinois (City of Chicago permits) and Travis County, Texas (City of Austin permits), both published October 17, 2026 and updated daily. San Francisco and Seattle feeds are in onboarding. Planned coverage is always labeled planned, and any example report is labeled a sample with illustrative figures.
