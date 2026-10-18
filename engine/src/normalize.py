@@ -4,7 +4,7 @@ Privacy rule (SOP section 3 rule 1) is enforced HERE, at the only door data
 enters through: person-name fields are never copied. Chicago: only contacts
 whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
-from trades import classify_trade, classify_sf_trade
+from trades import classify_trade, classify_sf_trade, classify_seattle_trade
 
 
 def _clean(v):
@@ -195,6 +195,71 @@ def normalize_sf(raw, reg):
     }
 
 
+def normalize_seattle(raw, reg):
+    """One raw Seattle row -> standard record dict (or None if unusable id).
+
+    Identity (registry dedupe_rule): permitnum is unique — measured
+    2026-10-18, window and all-time (6,348 = 6,348; 193,745 = 193,745) —
+    so source_record_id = permitnum and no collapsing applies.
+    Privacy: the dataset publishes no applicant/owner person-name fields
+    at all (verified against the full 41-column schema), and the pull is
+    additionally column-restricted by the registry pull_select. The only
+    contractor field carried is contractorcompanyname (a business name).
+    Valuation: estprojectcost is stored exactly as reported but is NOT
+    published — SDCI stamps a development's full estimated cost onto each
+    phase/sibling permit (registry field_map.valuation, measured 2026-10-18:
+    duplicated values over $1M inject 38.5% excess into the raw sum), so
+    King County runs counts-only, the Austin precedent.
+    """
+    sid = _clean(raw.get("permitnum"))
+    if not sid:
+        return None
+    address = _clean(raw.get("originaladdress1"))
+    if address and address.isupper():
+        address = _title(address)
+    city = _clean(raw.get("originalcity"))
+    if city and city.isupper():
+        city = _title(city)
+    if not city:
+        city = "Seattle"  # issuing jurisdiction's seat; mirrors Austin's default
+    zipc = _clean(raw.get("originalzip"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _clean(raw.get("contractorcompanyname"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("statuscurrent"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("permitclassmapped")) or "").lower()
+    category = cat_src if cat_src in ("residential", "non-residential") else None
+    pt = _clean(raw.get("permittypedesc")) or _clean(raw.get("permittypemapped"))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": pt,
+        "trade": classify_seattle_trade(raw.get("permittypemapped"),
+                                        raw.get("permittypedesc"),
+                                        raw.get("description")),
+        "category": category,
+        "project_description": _clean(raw.get("description")),
+        "valuation": _num(raw.get("estprojectcost")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("applieddate")),
+        "issue_date": _date(raw.get("issueddate")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
-               "san-francisco-ca": normalize_sf}
+               "san-francisco-ca": normalize_sf,
+               "seattle-king-wa": normalize_seattle}

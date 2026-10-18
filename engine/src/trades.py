@@ -66,6 +66,38 @@ def classify_trade(permit_type="", work_type="", description=""):
     return "general"
 
 
+def classify_seattle_trade(type_mapped="", type_desc="", description=""):
+    """Seattle (data.seattle.gov 76t5-zqzr) trade classification.
+
+    Seattle's mapped permit type separates demolition and roof permits
+    cleanly, and permittypedesc names new construction; everything else is
+    a building permit whose trade signal, when one exists, lives in the
+    work description. Deterministic, first match wins; records no rule
+    claims land in 'general' and are counted in the run report. Kept
+    separate from classify_trade so other counties cannot be disturbed.
+    """
+    tm = (type_mapped or "").strip().lower()
+    td = (type_desc or "").strip().lower()
+    d = (description or "").lower()
+    if tm == "demolition":
+        return "demolition"
+    if tm == "roof":
+        return "roofing"
+    if td == "new":
+        return "new-construction"
+    if _contains(d, SOLAR):
+        return "solar"
+    if _contains(d, HVAC):
+        return "hvac"
+    if _contains(d, PLUMB):
+        return "plumbing"
+    if _contains(d, ELEC):
+        return "electrical"
+    if _contains(d, ROOF):
+        return "roofing"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

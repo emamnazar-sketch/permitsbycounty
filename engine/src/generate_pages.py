@@ -83,6 +83,34 @@ CFG = {
                      'department flags as primary — counts on this page are permits, never raw '
                      'feed rows.</p>'),
     },
+    "wa/king": {
+        "registry": "seattle-king-wa",
+        "state_name": "Washington", "state_abbr": "WA",
+        "county_name": "King County", "crumb_county": "King County, Washington",
+        "h1": "Building Permits in King County, Washington",
+        "city": "Seattle",
+        "source_short": "City of Seattle",
+        "source_line": "City of Seattle open data — building permits",
+        "creator": "City of Seattle",
+        "cite_place": "King County (Seattle)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Seattle's estprojectcost failed validation the Austin way: SDCI
+        # stamps a development's full estimated cost onto each phase/sibling
+        # permit (registry field_map.valuation — duplicated values over $1M
+        # inject 38.5% excess into the raw sum, and no project-linkage field
+        # exists to dedupe by): counts only, no dollar figures.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is the City of Seattle's own mapped class for each permit "
+                          "(Residential / Non-Residential)."),
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City of Seattle — counted and "
+                     "sorted by trade, category, and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Seattle</strong>, the largest jurisdiction in King County. '
+                     'Other King County cities publish their permits separately and are not in '
+                     'this feed, so totals here are Seattle totals — labeled as such, never blended. '
+                     'County-wide coverage is not implied.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",
@@ -539,7 +567,7 @@ def generate(con, slug):
     <table class="data"><tr><th>Category</th><th class="n">Permits</th><th class="n">Share</th></tr>
     {cat_rows}
     </table>
-    <p class="note">Category is the {src}'s own residential / commercial class for each permit.</p>"""
+    <p class="note">{esc(cfg.get('category_note') or f"Category is the {src}'s own residential / commercial class for each permit.")}</p>"""
 
     qa_html = "\n".join(f'<div class="qa"><h3>{esc(q)}</h3><p>{esc(a)}</p></div>' for q, a in qas)
     body = f"""
