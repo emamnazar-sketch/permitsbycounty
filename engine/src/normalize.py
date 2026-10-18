@@ -7,7 +7,8 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 import re
 
 from trades import (classify_boston_trade, classify_br_trade,
-                    classify_cincinnati_trade, classify_philly_trade,
+                    classify_cincinnati_trade, classify_fort_worth_trade,
+                    classify_philly_trade,
                     classify_sa_trade, classify_trade, classify_nyc_trade,
                     classify_sf_trade, classify_seattle_trade)
 
@@ -768,6 +769,108 @@ def normalize_san_antonio(raw, reg):
     }
 
 
+def _epoch_ms_date(v):
+    """ArcGIS date fields arrive as epoch milliseconds (numbers)."""
+    if v is None or v == "":
+        return None
+    try:
+        from datetime import datetime, timezone
+        return datetime.fromtimestamp(float(v) / 1000, timezone.utc).date().isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def _fw_address(raw):
+    """Fort Worth's table splits the street address into parts (Addr_No,
+    Direction, Street_Name, Street_Suffix, Street_Suffix_Dir); its own
+    Full_Street_Address column is unpopulated on sampled rows, so the
+    parts are composed. All-caps compositions are title-cased."""
+    parts = []
+    no = raw.get("Addr_No")
+    if no is not None and str(no).strip() not in ("", "0"):
+        parts.append(str(no).strip().removesuffix(".0"))
+    for f in ("Direction", "Street_Name", "Street_Suffix", "Street_Suffix_Dir"):
+        s = _clean(raw.get(f))
+        if s:
+            parts.append(s)
+    if not parts:
+        return None
+    addr = " ".join(parts)
+    return _title(addr) if addr.isupper() else addr
+
+
+def normalize_fort_worth(raw, reg):
+    """One collapsed Fort Worth permit -> standard record dict (or None).
+
+    Input is NOT a raw feed row: the pipeline's collapse step (registry
+    collapse_events, key = Permit_No) has already merged the permit's
+    restated mirror rows into one dict — the feed's grain is mostly one
+    row per permit with a measured fan-out (70,199 issued-window rows =
+    63,948 permits; surplus rows restate the permit per address it
+    covers or as mirror duplicates, and never disagree on type, subtype,
+    or job value). The representative row is the permit's earliest-filed
+    row (pull order: File_Date, Permit_No, ObjectId). Population
+    (registry pull_where_extra): only permits standing in an
+    issued-proven status are pulled — the table is the city's
+    all-applications Accela mirror, and statuses that cannot prove
+    issuance (plan review, approved-not-yet-issued, withdrawn, denied,
+    ...) are out of the published population by definition, as is the
+    'Design Review' type (an approval that authorizes no construction).
+    Dates: the feed publishes NO issuance date. issue_date therefore
+    carries File_Date — the permit's application month — under the
+    definition printed on the hub, Data Sources, and llms.txt (counts
+    are issued permits by the month the application was filed);
+    Status_Date is deliberately never used as a date of record (for
+    Finaled permits it is the final-inspection date). Privacy: the pull
+    is column-restricted by the registry pull_select — Owner_Full_Name
+    (property-owner person names) and B1_SPECIAL_TEXT (who was involved)
+    are never requested from the API at all, and the table publishes no
+    contractor/business field, so contractor stays NULL, never inferred
+    (the Boston treatment). Valuation: JobValue belongs to the permit
+    (its rows never disagree); the city collects it on the building
+    families (~100% of their permits) and not on trade permits (0%), so
+    the permit's stated figure is stored as reported and published under
+    the count-once rule (registry field_map.valuation).
+    """
+    sid = _clean(raw.get("Permit_No"))
+    if not sid:
+        return None
+    ptype = _clean(raw.get("Permit_Type"))
+    subtype = _clean(raw.get("Permit_SubType"))
+    status_src = _clean(raw.get("Current_Status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    category = {"Residential Building Permit": "residential",
+                "Residential Accessory Struct": "residential",
+                "Commercial Building Permit": "commercial",
+                "Commercial Accessory Structure": "commercial",
+                "Commercial Grading Permit": "commercial"}.get(ptype)
+    zipc = raw.get("Zip_Code")
+    zipc = str(int(zipc)) if isinstance(zipc, (int, float)) and zipc else _clean(zipc)
+    file_date = _epoch_ms_date(raw.get("File_Date"))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": _fw_address(raw),
+        "city": "Fort Worth",  # issuing jurisdiction's seat; mirrors Austin's default
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": ptype,
+        "trade": classify_fort_worth_trade(ptype, subtype),
+        "category": category,
+        "project_description": _clean(raw.get("B1_WORK_DESC")),
+        "valuation": _cost(raw.get("JobValue")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": file_date,
+        "issue_date": file_date,  # the feed's only record date — see docstring
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": None,  # no business field exists; owner names never pulled
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -781,4 +884,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "boston-suffolk-ma": normalize_boston,
                "cincinnati-hamilton-oh": normalize_cincinnati,
                "baton-rouge-east-baton-rouge-la": normalize_baton_rouge,
-               "san-antonio-bexar-tx": normalize_san_antonio}
+               "san-antonio-bexar-tx": normalize_san_antonio,
+               "fort-worth-tarrant-tx": normalize_fort_worth}

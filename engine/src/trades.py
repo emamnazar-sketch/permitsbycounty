@@ -440,6 +440,52 @@ def classify_sa_trade(components=()):
     return "general"
 
 
+def classify_fort_worth_trade(permit_type="", permit_subtype=""):
+    """Fort Worth (ArcGIS Hub, CFW Development Permits Table) trade
+    classification.
+
+    Input is ONE collapsed permit's Permit_Type (+ Permit_SubType) — the
+    pipeline has already merged the permit's restated mirror rows by
+    Permit_No, and a permit's rows never disagree on type or subtype
+    (measured 2026-10-18), so classification is exact-match on the
+    city's own permit families — no description mining (the Cincinnati
+    trap: free text misleads; the named families do not).
+
+    * The licensed-trade families the city files separately win their
+      own trades: Plumbing, Electrical, Mechanical (= HVAC).
+    * 'Plumbing Backflow' is the city's own distinct permit family
+      (7,624 permits in the audit window; backflow-prevention assembly
+      work is separately licensed in Texas) and classifies as BACKFLOW,
+      its own trade — the treatment Boston gave its gas family and Baton
+      Rouge its generator family.
+    * The building families (Residential / Commercial Building Permit)
+      classify as NEW-CONSTRUCTION only when the record's own SubType
+      says 'New'; Remodel / Addition / Standalone / Umbrella subtypes
+      name no single licensed trade and land in 'general', as do the
+      accessory-structure families and Commercial Grading.
+    * 'Design Review' never reaches this classifier — it is excluded
+      by the registry's scope filter at pull time (a design-review
+      approval authorizes no construction), and the exclusion is named
+      and counted on the county pages.
+
+    Deterministic; first match wins; permits no rule claims land in
+    'general'. Kept separate so other counties cannot be disturbed.
+    """
+    t = (permit_type or "").strip()
+    s = (permit_subtype or "").strip()
+    if t == "Plumbing":
+        return "plumbing"
+    if t == "Plumbing Backflow":
+        return "backflow"
+    if t == "Electrical":
+        return "electrical"
+    if t == "Mechanical":
+        return "hvac"
+    if t in ("Residential Building Permit", "Commercial Building Permit"):
+        return "new-construction" if s == "New" else "general"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

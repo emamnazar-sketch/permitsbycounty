@@ -27,6 +27,7 @@ sys.path.insert(0, HERE)
 import socrata
 import carto
 import ckan
+import arcgis
 import normalize as nz
 import qa
 
@@ -170,7 +171,7 @@ def main():
     ap.add_argument("--since", required=True, help="window field >= this ISO date")
     ap.add_argument("--field", default="application_start_date",
                     choices=["application_start_date", "applieddate", "issue_date", "issued_date",
-                             "issueddate", "permitissuedate", "DATE ISSUED"],
+                             "issueddate", "permitissuedate", "DATE ISSUED", "File_Date"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -199,6 +200,12 @@ def main():
         stamp_iso = ckan.dataset_updated_at(reg["api_base"], reg["dataset_id"],
                                             reg["resource_id"])
         updated_dt = datetime.fromisoformat(str(stamp_iso).replace("Z", "+00:00"))
+    elif reg["source_type"] == "arcgis":
+        # ArcGIS registries stamp freshness from the layer's own
+        # editingInfo.dataLastEditDate — see arcgis.py.
+        ds_name = reg["dataset_id"]
+        updated_dt, _layer_name = arcgis.dataset_updated_at(reg["api_base"],
+                                                            reg["arcgis_layer"])
     else:
         updated_epoch, ds_name = socrata.dataset_updated_at(domain, reg["dataset_id"])
         updated_dt = datetime.fromtimestamp(updated_epoch, timezone.utc)
@@ -216,7 +223,11 @@ def main():
     # quoted, space-bearing TEXT field (San Antonio's "DATE ISSUED", plain
     # ISO date strings) supplies its own window predicate fragment; the
     # comparison is then a plain date-string comparison, not a timestamp.
-    if reg.get("ckan_window_field_sql"):
+    if reg.get("window_where_sql"):
+        # A registry may supply the full window predicate with a {since}
+        # placeholder (ArcGIS: TIMESTAMP literals, not Socrata strings).
+        where = reg["window_where_sql"].format(since=args.since)
+    elif reg.get("ckan_window_field_sql"):
         where = f"{reg['ckan_window_field_sql']} >= '{args.since}'"
     else:
         where = f"{args.field} >= '{args.since}T00:00:00'"
@@ -232,6 +243,9 @@ def main():
     if reg["source_type"] == "carto":
         report["expected_pull_count"] = carto.count_where(reg["api_base"],
                                                           reg["carto_table"], where)
+    elif reg["source_type"] == "arcgis":
+        report["expected_pull_count"] = arcgis.count_where(reg["api_base"],
+                                                           reg["arcgis_layer"], where)
     elif reg["source_type"] == "ckan":
         report["expected_pull_count"] = ckan.count_where(reg["api_base"],
                                                          reg["resource_id"], where)
@@ -252,6 +266,10 @@ def main():
         manifest = carto.pull_window(reg["api_base"], reg["carto_table"],
                                      reg["pull_select"], where, order,
                                      vault_dir, run_stamp)
+    elif reg["source_type"] == "arcgis":
+        manifest = arcgis.pull_window(reg["api_base"], reg["arcgis_layer"],
+                                      reg["pull_select"], where, order,
+                                      vault_dir, run_stamp)
     elif reg["source_type"] == "ckan":
         manifest = ckan.pull_window(reg["api_base"], reg["resource_id"],
                                     reg["pull_select"], where, order,
@@ -274,6 +292,8 @@ def main():
             rows = payload["rows"]  # Carto envelope
         elif isinstance(payload, dict) and isinstance(payload.get("result"), dict):
             rows = payload["result"]["records"]  # CKAN envelope
+        elif isinstance(payload, dict) and "features" in payload:
+            rows = [f.get("attributes", {}) for f in payload["features"]]  # ArcGIS envelope
         else:
             rows = payload  # Socrata: the body is the row array itself
         ref = f"{os.path.basename(vault_dir)}/{page['file']}"
@@ -320,7 +340,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

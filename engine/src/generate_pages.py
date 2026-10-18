@@ -64,6 +64,9 @@ TRADE_LABELS = {
     # San Antonio: foundation repair is the city's own high-volume permit
     # family (Foundation Repair Permit, 3,208 window permits).
     "foundation": "Foundation",
+    # Fort Worth: backflow-prevention permits are the city's own distinct
+    # permit family (Plumbing Backflow, 7,624 window permits).
+    "backflow": "Backflow",
 }
 
 CFG = {
@@ -290,6 +293,54 @@ CFG = {
                      '1 in 40 permits — the commercial building core — and repeats a '
                      'project\'s value across its permits, so this report publishes permit '
                      'counts, not a dollar total that would describe only that slice.</p>'),
+    },
+    "tx/tarrant": {
+        "registry": "fort-worth-tarrant-tx",
+        "state_name": "Texas", "state_abbr": "TX",
+        "county_name": "Tarrant County", "crumb_county": "Tarrant County, Texas",
+        "h1": "Building Permits in Tarrant County, Texas",
+        "city": "Fort Worth",
+        "source_short": "City of Fort Worth",
+        "source_line": "City of Fort Worth open data — development permits from the Development Services Department",
+        "creator": "City of Fort Worth",
+        "cite_place": "Tarrant County (Fort Worth)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Fort Worth's JobValue passed validation at permit level (registry
+        # field_map.valuation — the city collects job value on the building
+        # families at ~100% of permits and not on trade permits; a permit's
+        # restated rows never disagree on the figure, so each permit's
+        # value counts once; the audit pull's total is $6,868,935,103.89
+        # and the DB sum must reproduce the source-side figure for the
+        # scoped window exactly): values publish.
+        "show_valuation": True, "show_category": True,
+        # The city states job values on its building permits only: its
+        # trade families (plumbing, electrical, mechanical, backflow)
+        # carry no value on any permit, so their hub rows show — (not
+        # $0) and their trade pages render counts-style with a note.
+        "values_on_building_only": True,
+        "category_note": ("Category follows the city's own Residential/Commercial naming of its "
+                          "building and accessory permit families; the trade families publish no "
+                          "class and are counted in the totals only."),
+        "window_start": "2025-10-17",
+        "lede_hub": ("Every building permit issued by the City of Fort Worth — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Fort Worth</strong> (Development Services Department). '
+                     'Other Tarrant County jurisdictions publish their permits separately and are '
+                     'not in this feed, so totals here are Fort Worth totals — labeled as such, '
+                     'never blended. Three facts about the city\'s data shape the figures. The '
+                     'city\'s table is its full permit-center register, so this report counts '
+                     'only permits standing in a status that proves issuance (issued, finaled, '
+                     'expired, or closed after issuance) — applications still in review are not '
+                     'counted — and its design-review approvals, which authorize no construction, '
+                     'are not counted either (185 in the last 12 months). The register lists some '
+                     'permits on several rows (one per address, or restated), so we count each '
+                     'permit <strong>once</strong>, by its permit number. And the city dates '
+                     'applications, not issuances: monthly counts are issued permits by the month '
+                     'the application was filed, and recent months grow as filed applications '
+                     'complete review. The city states a job value on its building permits and '
+                     'not on its trade permits, so the reported value below is the building '
+                     'permits\' stated total.</p>'),
     },
     "il/cook": {
         "registry": "chicago-cook-il",
@@ -793,6 +844,17 @@ def generate(con, slug):
                             "WHERE county_id=? GROUP BY trade ORDER BY 2 DESC",
                             (county_id,)).fetchall()
     paged_trades = {t for t, n, _ in trades_12 if t != "general" and n >= TRADE_PAGE_MIN}
+    # Trades whose permits never state a value (only computed for counties
+    # flagged values_on_building_only — Fort Worth: the city collects job
+    # value on building permits, not on trade permits). Their hub rows
+    # render "—" instead of a misleading $0, and their trade pages render
+    # counts-style with an explanatory note. Empty for every other county,
+    # so their output is unchanged.
+    unvalued_trades = set()
+    if cfg.get("values_on_building_only"):
+        unvalued_trades = {t for t, _, _ in trades_12 if not con.execute(
+            "SELECT 1 FROM permits WHERE county_id=? AND trade=? AND valuation IS NOT NULL LIMIT 1",
+            (county_id, t)).fetchone()}
     # "Top trade" names a real trade: when 'general' (the unclassified
     # bucket) leads a county — San Francisco, where most permits are small
     # alterations whose descriptions name no trade — the headline trade is
@@ -838,7 +900,7 @@ def generate(con, slug):
         trade_rows = "\n".join(
             f"<tr><td>{trade_link(t, n)}</td>"
             f"<td class='n'>{n:,}</td><td class='n'>{n / total_12 * 100:.1f}%</td>"
-            f"<td class='n'>{money_full(v)}</td></tr>"
+            f"<td class='n'>{'—' if t in unvalued_trades else money_full(v)}</td></tr>"
             for t, n, v in trades_12)
         trade_head = '<th>Trade</th><th class="n">Permits</th><th class="n">Share</th><th class="n">Reported value</th>'
         projects_head = f"Biggest projects issued in {month_label(ctx.current_month)}"
@@ -953,7 +1015,7 @@ def generate(con, slug):
         tm = trade_months.get(trade, {})
         sep_n, sep_v = tm.get(ctx.last_full_month, (0, 0))
         cmo_n, cmo_v = tm.get(ctx.current_month, (0, 0))
-        if ctx.val:
+        if ctx.val and trade not in unvalued_trades:
             if sep_n:
                 q = (f"How many {label.lower()} permits were issued in {city} in {month_label(ctx.last_full_month)}?",
                      f"{sep_n:,} {label.lower()} permits were issued in {city} in {month_label(ctx.last_full_month)}, "
@@ -1008,6 +1070,18 @@ def generate(con, slug):
                       f"official record — monthly totals and the most recent {label.lower()} permits.")
             t_desc = (f"{label} {noun} issued in {city} ({cfg['county_name']}): {n12:,} in the last 12 months, "
                       f"monthly counts and recent permits. Free public-record data.")
+        if ctx.val and trade in unvalued_trades:
+            # Valued county, value-less trade family (Fort Worth's trade
+            # permits state no job value): the counts-style page above
+            # stands, with the reason printed where the projects table
+            # would otherwise promise values.
+            t_projects = (f'<p class="note">The {src} states a job value on its building permits only — '
+                          f'no value is published for {label.lower()} permits, so this page reports counts. '
+                          f'The countywide reported value is on the <a href="/{slug}/">county report</a>.</p>'
+                          + t_projects)
+            t_lede = (f"{label} {noun} issued by the {src}, counted from the "
+                      f"official record — monthly totals and the most recent {label.lower()} permits. "
+                      f"The {src} does not state job values on {label.lower()} permits.")
         url = f"https://permitsbycounty.com/{slug}/{trade}/"
         body = f"""
     <p class="eyebrow">Trade report &middot; {esc(cfg['county_name'])}, {esc(cfg['state_name'])}</p>
