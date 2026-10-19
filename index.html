@@ -314,7 +314,10 @@
         padding: 13px 0;
         border-bottom: 1px solid #eef2f0;
       }
-      .mobile-menu .btn-outline { margin-top: 16px; text-align: center; display: block; }
+      /* The divider rule above (.mobile-menu a) outranks .btn-outline and
+         would flatten the button's bottom edge to a pale 1px line; restore
+         the full teal border so every corner shows. */
+      .mobile-menu .btn-outline { margin-top: 16px; text-align: center; display: block; border: 1.5px solid var(--teal); }
 
       /* ---------- Hero ---------- */
       .hero { background: #fff; overflow: hidden; }
