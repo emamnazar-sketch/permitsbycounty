@@ -1,0 +1,6 @@
+/wa /404.html 404
+/wa/* /404.html 404
+/ma /404.html 404
+/ma/* /404.html 404
+/la /404.html 404
+/la/* /404.html 404
