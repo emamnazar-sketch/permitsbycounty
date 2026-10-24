@@ -8,7 +8,7 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_fort_worth_trade,
-                    classify_philly_trade,
+                    classify_philly_trade, classify_raleigh_trade,
                     classify_sa_trade, classify_trade, classify_nyc_trade,
                     classify_sf_trade, classify_seattle_trade)
 
@@ -871,6 +871,77 @@ def normalize_fort_worth(raw, reg):
     }
 
 
+def normalize_raleigh(raw, reg):
+    """One raw Raleigh row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the permit number is exactly
+    unique in the trailing-12-month window (5,486 rows = 5,486 distinct
+    permitnum, measured 2026-10-23 on a full audit pull) —
+    source_record_id = permitnum, no collapsing. Privacy: the pull is
+    column-restricted by the registry pull_select — the parcel-owner
+    fields (parcelownername and the owner address fields, property-owner
+    person data) and the contractor's email/phone/license/address fields
+    are never requested from the API at all. The only name carried is
+    contractorcompanyname, the permit's published contractor company of
+    record (present on 4,857 of 5,486 window permits; the source's empty
+    string carries as NULL). Dates arrive as ArcGIS epoch milliseconds.
+    Valuation: estprojectcost is stored and published as reported (it
+    passed validation on the full window — see registry
+    field_map.valuation). Category: the city's own mapped class
+    (Residential / Non-Residential, the Seattle treatment). Population:
+    the pull window is issueddate, so every record was issued by the
+    city; post-issuance statuses (Complete, Expired-Closed, On Hold,
+    Stop Work Order) stay in the population with their source status
+    preserved.
+    """
+    sid = _clean(raw.get("permitnum"))
+    if not sid:
+        return None
+    address = _clean(raw.get("originaladdress1"))
+    if address and address.isupper():
+        address = _title(address)
+    city = _clean(raw.get("originalcity"))
+    if city and city.isupper():
+        city = _title(city)
+    if not city:
+        city = "Raleigh"  # issuing jurisdiction's seat; mirrors Austin's default
+    zipc = _clean(raw.get("originalzip"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _clean(raw.get("contractorcompanyname"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("statuscurrent"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("permitclassmapped")) or "").lower()
+    category = cat_src if cat_src in ("residential", "non-residential") else None
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("permittype")),
+        "trade": classify_raleigh_trade(raw.get("permittype"),
+                                        raw.get("workclassmapped"),
+                                        raw.get("proposeduse"),
+                                        raw.get("proposedworkdescription")),
+        "category": category,
+        "project_description": _clean(raw.get("proposedworkdescription")),
+        "valuation": _num(raw.get("estprojectcost")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _epoch_ms_date(raw.get("applieddate")),
+        "issue_date": _epoch_ms_date(raw.get("issueddate")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -885,4 +956,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "cincinnati-hamilton-oh": normalize_cincinnati,
                "baton-rouge-east-baton-rouge-la": normalize_baton_rouge,
                "san-antonio-bexar-tx": normalize_san_antonio,
-               "fort-worth-tarrant-tx": normalize_fort_worth}
+               "fort-worth-tarrant-tx": normalize_fort_worth,
+               "raleigh-wake-nc": normalize_raleigh}

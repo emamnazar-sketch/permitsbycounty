@@ -486,6 +486,69 @@ def classify_fort_worth_trade(permit_type="", permit_subtype=""):
     return "general"
 
 
+def classify_raleigh_trade(permit_type="", work_class="", proposed_use="",
+                           description=""):
+    """Raleigh (City of Raleigh ArcGIS, Building Permits) trade
+    classification.
+
+    Raleigh's layer is a BUILDING-permits feed: the city publishes its
+    plumbing, electrical, and mechanical permits in separate datasets
+    (the item description says so), and every window record's mapped
+    type is 'Building' — so, as with Seattle, the trade signal lives in
+    the record's own fields, in this precedence:
+
+    * the source's own demolition naming wins first: permittype
+      'Demolition' or a DEMOLITION proposed use. The bare word
+      'demolition' in a scope description is NOT a signal — remodel
+      descriptions use it for interior work ('demolition of the
+      existing tub') — the Philadelphia / Boston trap, handled the
+      same way. (Measured: the layer's Demolition-type records carry
+      no issue date after 2021, so this rule fires once in the window.)
+    * workclassmapped 'New' is new construction (the Cincinnati rule:
+      a new building with trade work inside it is a new-construction
+      project — 1,253 window permits).
+    * a proposed use of 'MISCELLANEOUS SUCH AS FENCES' is the city's
+      own fence family — fencing (224 window permits after the New
+      rule; the Boston gas / San Antonio foundation treatment: the
+      source's own distinct family gets its own trade).
+    * then the scope description's trade keywords (solar, roofing,
+      HVAC/mechanical, plumbing, electrical), most specific first.
+    * everything else is 'general' — measured 64.7% of the window, and
+      sampled general descriptions are genuinely trade-less (kitchen
+      and bath remodels, foundation repairs, fit-ups, porches, decks).
+
+    Deterministic; first match wins; permits no rule claims land in
+    'general' and are counted in the run report. Kept separate so
+    other counties cannot be disturbed. Simulated on the full window
+    pull before build (2026-10-23): general 3,550 · new-construction
+    1,253 · fencing 224 · plumbing 153 · electrical 128 · hvac 87 ·
+    roofing 81 · solar 9 · demolition 1.
+    """
+    pt = (permit_type or "").strip()
+    wc = (work_class or "").strip()
+    pu = (proposed_use or "").upper()
+    d = (description or "").lower()
+    if pt == "Demolition" or "DEMOLITION" in pu:
+        return "demolition"
+    if wc == "New":
+        return "new-construction"
+    if "FENCES" in pu:
+        return "fencing"
+    if "solar" in d:
+        return "solar"
+    if _contains(d, ROOF):
+        return "roofing"
+    if _contains(d, ("hvac", "furnace", "air conditioning", "air conditioner",
+                     "ductwork", "mechanical")):
+        return "hvac"
+    if _contains(d, ("plumbing", "water heater", "repipe", "sewer")):
+        return "plumbing"
+    if _contains(d, ("electrical", "electric service", "panel upgrade",
+                     "ev charger")):
+        return "electrical"
+    return "general"
+
+
 def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     """San Francisco (DataSF i98e-djp9) trade classification.
 

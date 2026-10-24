@@ -342,6 +342,40 @@ CFG = {
                      'not on its trade permits, so the reported value below is the building '
                      'permits\' stated total.</p>'),
     },
+    "nc/wake": {
+        "registry": "raleigh-wake-nc",
+        "state_name": "North Carolina", "state_abbr": "NC",
+        "county_name": "Wake County", "crumb_county": "Wake County, North Carolina",
+        "h1": "Building Permits in Wake County, North Carolina",
+        "city": "Raleigh",
+        "source_short": "City of Raleigh",
+        "source_line": "City of Raleigh open data — building permits",
+        "creator": "City of Raleigh",
+        "cite_place": "Wake County (Raleigh)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Raleigh's estprojectcost passed validation on the full window
+        # (registry field_map.valuation — stated on 100% of permits, no
+        # $1 placeholders, repeated large values are identical buildings
+        # in one development at sibling addresses, DB sum verified
+        # against the source-side total): values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is the City of Raleigh's own mapped class for each permit "
+                          "(Residential / Non-Residential)."),
+        "window_start": "2025-10-23",
+        "lede_hub": ("Every building permit issued by the City of Raleigh — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Raleigh</strong>. Other Wake County towns publish their '
+                     'permits separately and are not in this feed, so totals here are Raleigh '
+                     'totals — labeled as such, never blended. Two facts about the city\'s data '
+                     'shape the figures. The dataset is the city\'s <strong>building</strong> '
+                     'permits — Raleigh publishes its plumbing, electrical, and mechanical '
+                     'permits in separate datasets — so the trade figures here are read from '
+                     'each building permit\'s own work class, use, and scope description. And '
+                     'project values are the applicants\' estimated project costs, printed as '
+                     'reported: identical buildings in one development can state the same '
+                     'estimated cost on each of their permits.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",
