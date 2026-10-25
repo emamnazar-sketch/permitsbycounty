@@ -788,6 +788,13 @@ def page_shell(title, description, canonical, crumbs, ld_extra, body):
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>{CSS}</style>
 {lds}
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WQTWYGZZKR"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', 'G-WQTWYGZZKR');
+</script>
 </head>
 <body>
 {HEADER}
