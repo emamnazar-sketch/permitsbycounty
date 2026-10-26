@@ -8,8 +8,9 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_fort_worth_trade,
-                    classify_philly_trade, classify_raleigh_trade,
-                    classify_sa_trade, classify_trade, classify_nyc_trade,
+                    classify_miami_trade, classify_philly_trade,
+                    classify_raleigh_trade, classify_sa_trade,
+                    classify_trade, classify_nyc_trade,
                     classify_sf_trade, classify_seattle_trade)
 
 # A real DOB job filing number: borough letter + 8 digits + filing iteration
@@ -942,6 +943,92 @@ def normalize_raleigh(raw, reg):
     }
 
 
+def normalize_miami(raw, reg):
+    """One raw Miami-Dade row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the permit number is exactly
+    unique in the trailing-12-month window (69,063 rows = 69,063
+    distinct PermitNumber, measured 2026-10-25 on a full audit pull)
+    — source_record_id = PermitNumber, no collapsing. Sub-permits
+    that name a MasterPermitNumber are distinct county permits with
+    their own numbers (the Philadelphia parent-job treatment).
+    Privacy: the pull is column-restricted by the registry
+    pull_select — OwnerName (property owners, incl. person names),
+    ArchitectName, and the contractor's address/phone/license fields
+    are never requested from the API at all. The only name carried is
+    ContractorName, the permit's published contractor of record; the
+    source's literal 'OWNER' value (12,318 window permits — owner-
+    builder permits, not a business) carries as NULL. The feed
+    truncates some business names and escapes commas in them
+    ('\\\\,'); the escape is repaired, the truncation is mirrored as
+    reported (the NYC treatment). Dates: PermitIssuedDate is an
+    ArcGIS DateOnly string; ApplicationDate arrives as epoch ms.
+    Valuation: EstimatedValue FAILED validation on the full window
+    (registry field_map.valuation — master-permit values restated on
+    sub-permits, and standalone values corrupted at the top end:
+    24 permits state more than $2 billion, the largest $9.54 billion
+    on an ordinary residential street), so valuation stays NULL and
+    Miami-Dade runs counts-only (the Philadelphia by-construction
+    shape; the raw values remain in the vault, unpublished). The
+    feed publishes no property ZIP code (ContractorZip is the
+    contractor's, never the property's), so zip stays NULL. Category:
+    the county's own ResidentialCommercial flag (R/C). Status: the
+    dataset is a permits-issued register and publishes no status
+    field, so status is 'issued' (the San Antonio treatment).
+    """
+    sid = _clean(raw.get("PermitNumber"))
+    if not sid:
+        return None
+    address = _clean(raw.get("PropertyAddress"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    city = _clean(raw.get("City"))
+    if city and city.isupper():
+        city = _title(city)
+    if not city:
+        city = "Miami"  # the county's seat; mirrors Austin's default
+    contractor = _clean(raw.get("ContractorName"))
+    if contractor:
+        contractor = contractor.replace("\\,", ",")
+        if contractor.upper() == "OWNER":
+            contractor = None
+        elif contractor.isupper():
+            contractor = _title(contractor)
+    cat_src = (_clean(raw.get("ResidentialCommercial")) or "").upper()
+    category = {"R": "residential", "C": "commercial"}.get(cat_src)
+    app_type = _clean(raw.get("ApplicationTypeDescription"))
+    comments = _clean(raw.get("DetailDescriptionComments"))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": None,  # feed publishes no property ZIP (registry field_map)
+        "permit_type": app_type,
+        "trade": classify_miami_trade(raw.get("PermitType"),
+                                      app_type, comments,
+                                      raw.get("CategoryDescription1"),
+                                      raw.get("ProposedUseDescription")),
+        "category": category,
+        "project_description": comments,
+        "valuation": None,  # field failed validation; counts-only (above)
+        "status": "issued",
+        "status_source": None,  # register publishes no status field
+        "application_date": _epoch_ms_date(raw.get("ApplicationDate")),
+        "issue_date": (_epoch_ms_date(raw.get("PermitIssuedDate"))
+                       if isinstance(raw.get("PermitIssuedDate"), (int, float))
+                       else _date(raw.get("PermitIssuedDate"))),
+        "source_updated_date": None,  # dataset publishes no per-row stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -957,4 +1044,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "baton-rouge-east-baton-rouge-la": normalize_baton_rouge,
                "san-antonio-bexar-tx": normalize_san_antonio,
                "fort-worth-tarrant-tx": normalize_fort_worth,
-               "raleigh-wake-nc": normalize_raleigh}
+               "raleigh-wake-nc": normalize_raleigh,
+               "miami-dade-fl": normalize_miami}

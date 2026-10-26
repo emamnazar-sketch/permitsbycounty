@@ -1,0 +1,71 @@
+{
+ "api_base": "https://services.arcgis.com/8Pc9XBTAsYuxx9Ny/arcgis/rest/services/miamidade_permit_data/FeatureServer",
+ "arcgis_layer": 0,
+ "audit_2026_10_25": "FRESH AUDIT PASSED (first-hand, 2026-10-25) \u2014 the expansion order's third county, after Mecklenburg NC was SKIPPED 2026-10-23 and Wake NC went live. (1) Layer 'miamidade_permit_data' (Miami-Dade County, ArcGIS item 'Building Permits Issued By Miami-Dade County - 2 Previous Years to Present', item id 6db5f56e886446df88313ca279e59120, owner MDPublisher, public access): 487,348 rows all-time, PermitIssuedDate 2020-01-01 to 2026-10-23; layer editingInfo.dataLastEditDate 2026-10-25T12:35:41Z (same day as the audit). (2) VOLUME STABILITY measured by issue year: 67,526 (2020) / 75,268 / 75,228 / 69,970 / 70,551 / 70,922 (2025) / 57,883 (2026 YTD through Oct 23) \u2014 no collapse of the Mecklenburg kind; months run 4,683-6,437 through 2025-2026. (3) Identity measured on a full audit pull of the trailing-12-month window (PermitIssuedDate >= 2025-10-25): 69,063 rows = 69,063 distinct PermitNumber, 0 duplicates, 0 null permit numbers. (4) Coverage is county-issued permits only: Miami-Dade County issues permits for the unincorporated county and county projects; the 30+ incorporated municipalities issue their own and are NOT in this feed (printed on the hub). City field on window rows: Miami 67,904 / Homestead 1,159 (postal cities of county-issued permits). (5) Terms: the item's licenseInfo is the county's as-is data disclaimer (no prohibition on use; figures published 'as reported by Miami-Dade County' with attribution, no endorsement implied) \u2014 the same portal-standard shape as the other ArcGIS county services already live.",
+ "county": "Miami-Dade County",
+ "county_fips": "12086",
+ "county_slug": "fl/miami-dade",
+ "coverage_note": "Permits issued by Miami-Dade County only (unincorporated Miami-Dade County and county projects). The county's incorporated municipalities (Miami, Hialeah, and the other cities) issue their own permits and are not in this feed; totals here are Miami-Dade County-issued totals, labeled as such.",
+ "dataset_id": "miamidade_permit_data",
+ "date_onboarded": "2026-10-25",
+ "dedupe_rule": {
+  "definition": "One published permit = one PermitNumber in Miami-Dade County's issued-permits layer. The layer's grain is one row per permit: no collapsing applies or is needed. Permits that name a MasterPermitNumber (20,047 window rows) are distinct county permits with their own permit numbers \u2014 trade and sub permits issued under a master building permit \u2014 counted as the separate permits the county issued (the Philadelphia parent-job treatment), not as duplicates of the master.",
+  "measurement": "Trailing-12-month window (PermitIssuedDate >= 2025-10-25), measured 2026-10-25 on a full audit pull: 69,063 rows = 69,063 distinct PermitNumber, 0 duplicates, 0 nulls. The pipeline's in-batch duplicate gate and the (county_id, source_record_id) upsert key guard every future pull."
+ },
+ "field_map": {
+  "address": "PropertyAddress, as published (whitespace collapsed; all-caps values title-cased). The feed publishes no property ZIP code \u2014 ContractorZip is the contractor's ZIP and is never used as the property's \u2014 so zip stays NULL.",
+  "application_date": "ApplicationDate (epoch ms in the ArcGIS feed, converted to the civil date).",
+  "category": "ResidentialCommercial, the county's own flag: R = Residential (41,266 window permits) / C = Commercial (27,795); 2 window permits carry no flag and stay NULL.",
+  "contractor_rule": "ContractorName ONLY \u2014 the permit's published contractor of record (present on all 69,063 window rows; the literal value 'OWNER' on 12,318 owner-builder permits is not a business and carries as NULL, so 56,745 permits carry a business name). The pull's column list never requests OwnerName (property owners, including person names), ArchitectName, or the contractor's number/address/city/state/ZIP/phone fields.",
+  "issue_date": "PermitIssuedDate (an ArcGIS DateOnly field, published as an ISO date string). The window is defined on it: a record enters this report when the county records an issue date.",
+  "permit_number": "PermitNumber (unique in the window, see dedupe_rule).",
+  "permit_type": "ApplicationTypeDescription, the county's own work-type naming (NEW, ALTER - INTERIOR, RE-ROOF/REPAIR, FENCE NOMASONRY, DEMOLISH, ...). The county's family code (PermitType: BLDG/MBLD/ELEC/PLUM/MECH/FIRE/...) drives the trade classification (see trades.classify_miami_trade).",
+  "status": "The dataset is a permits-issued register ('Building Permits Issued By Miami-Dade County') and publishes no status field; every record was issued by the county, so status is 'issued' and status_source stays NULL (the San Antonio treatment).",
+  "valuation": "EstimatedValue FAILED validation on the full window (measured 2026-10-25) and is NOT carried: valuation stays NULL and Miami-Dade publishes counts only. Evidence: stated on 65,123 of 69,063 permits (3,940 null, 0 at $0, only 23 at $1, median $23,000 \u2014 the bulk of the field looks sane), but (a) the value is a MASTER-permit figure restated identically on the master's sub-permits: of 4,888 multi-permit master groups in the window, 4,614 state one identical value on every permit in the group (e.g. $580,000,000 on each of an electrical, a building, two mechanical and a plumbing permit under one master) \u2014 $32,766,214,369 of per-row excess; and (b) standalone values are corrupted at the top end: 24 permits state more than $2,000,000,000 and the largest states $9,544,988,084 on an ordinary residential street (720 NE 117 ST); values above $100M alone total $192,765,121,523 of the $229,722,296,600 raw window sum (84%). No aggregation \u2014 raw, per-master count-once, or building-only \u2014 is trustworthy, so per the Austin precedent the pages ship without any dollar figure and the reason is stated on the Data Sources page. The raw field stays in the vault (it is in pull_select) as reported, unpublished, and is re-validated only if the source's field changes character."
+ },
+ "history_range": "PermitIssuedDate 2020-01-01 onward in the source (487,348 rows); we backfill the trailing 12 months only (site rule).",
+ "jurisdiction": "Miami-Dade County",
+ "jurisdiction_label": "Miami-Dade County",
+ "license": "Miami-Dade County as-is data disclaimer (named in the ArcGIS item's licenseInfo); attribution: Miami-Dade County, Florida",
+ "order_sql": "PermitIssuedDate ASC, PermitNumber ASC, ObjectId ASC",
+ "order_tiebreak": "PermitNumber, ObjectId",
+ "pull_select": [
+  "PermitNumber",
+  "MasterPermitNumber",
+  "PermitType",
+  "ResidentialCommercial",
+  "EstimatedValue",
+  "ApplicationDate",
+  "PermitIssuedDate",
+  "ApplicationTypeDescription",
+  "ProposedUseDescription",
+  "DetailDescriptionComments",
+  "PropertyAddress",
+  "City",
+  "State",
+  "ContractorName",
+  "CategoryDescription1",
+  "ObjectId"
+ ],
+ "qa_thresholds": {
+  "backfill_expected_volume_12mo": 69063,
+  "backfill_volume_tolerance": 0.25,
+  "freshness_max_age_hours": 96,
+  "valuation_max_plausible_usd": 2000000000
+ },
+ "rate_limit": "ArcGIS hosted FeatureServer query, 1,000-row pages (the layer's maxRecordCount) with the adapter's 0.4s pacing plus retries; anonymous public tier served the full audit and backfill pulls steadily.",
+ "refresh_tier": 1,
+ "registry_status": "live",
+ "source_name": "Miami-Dade County open data \u2014 Building Permits Issued",
+ "source_type": "arcgis",
+ "source_url": "https://www.arcgis.com/home/item.html?id=6db5f56e886446df88313ca279e59120",
+ "state": "FL",
+ "status_map": {
+  "ISSUED": "issued"
+ },
+ "terms_status": "verified-open-2026-10-25: the ArcGIS item record for 'Building Permits Issued By Miami-Dade County' (publisher: Miami-Dade County; owner MDPublisher; access public) carries the county's as-is disclaimer in licenseInfo and no restriction on reuse; figures are published 'as reported by Miami-Dade County' with attribution; no endorsement is implied.",
+ "update_cadence": "Daily (county-issued permits register); MEASURED 2026-10-25: layer dataLastEditDate 2026-10-25T12:35:41Z (same day) and newest PermitIssuedDate 2026-10-23. Freshness (gate 5) is measured as the layer's editingInfo.dataLastEditDate under a 96h threshold.",
+ "watermark_field": "PermitIssuedDate + PermitNumber \u2014 refresh re-pulls by the PermitIssuedDate watermark and upserts.",
+ "wave": "wave-1-spine",
+ "window_where_sql": "PermitIssuedDate >= DATE '{since}'"
+}

@@ -583,3 +583,81 @@ def classify_sf_trade(definition="", description="", reroof="", fire_only=""):
     if _contains(d, ROOF):
         return "roofing"
     return "general"
+
+
+def classify_miami_trade(permit_type="", app_type="", comments="",
+                         category1="", proposed_use=""):
+    """Miami-Dade County (ArcGIS 'Building Permits Issued') trade
+    classification.
+
+    The county's PermitType is a family code: ELEC/MELE electrical,
+    PLUM/MPLU plumbing, MECH/MMEC mechanical (HVAC), FIRE fire
+    protection, LPGX/MLPG gas (LPG), ZIPS a miscellaneous family, and
+    BLDG/MBLD the building family (BLDG = a standalone building permit,
+    MBLD = a master building permit). The family code wins first,
+    except for the county's solar families: roof-mounted and
+    ground-mounted installation applications are filed as electrical
+    permits and their comments are overwhelmingly solar/PV work
+    (measured 2026-10-25), so those application types are solar
+    wherever they appear.
+
+    Inside the building family the trade signal is the county's own
+    application type, then its category and scope text:
+    * RE-ROOF/REPAIR and ROOF MAINTENANCE applications, and change-out
+      scopes whose comment names a re-roof, are roofing. (The bare
+      application types ALTER/REPAIR stay general unless the scope
+      text names a trade — the interior-demo trap rule.)
+    * DEMOLISH applications on building permits are demolition; the
+      same application type on a trade-family permit is that trade's
+      disconnect work and stays with its family (handled above).
+    * FENCE NOMASONRY applications, a fence category, or a fence
+      scope are fencing.
+    * NEW and SHELL ONLY applications are new construction, except
+      paving/open-lot work; FOUNDATION ONLY is foundation work.
+    * a scope naming a sign is signage.
+    ZIPS is the county's miscellaneous permit family — fences are its
+    largest named category (fencing when its category or scope names
+    a fence); awnings, canopies, paving, farm buildings and the rest
+    stay general.
+
+    Deterministic; first match wins; everything else is 'general'.
+    Kept separate so other counties cannot be disturbed.
+    """
+    pt = (permit_type or "").strip().upper()
+    at = (app_type or "").strip().upper()
+    d = (comments or "").strip().upper()
+    cat = (category1 or "").strip().upper()
+    pu = (proposed_use or "").strip().upper()
+    if at in ("ROOF MOUNTED INSTAL", "GROUND MOUNTED INSTA"):
+        return "solar"
+    if pt in ("ELEC", "MELE"):
+        return "electrical"
+    if pt in ("PLUM", "MPLU"):
+        return "plumbing"
+    if pt in ("MECH", "MMEC"):
+        return "hvac"
+    if pt == "FIRE":
+        return "fire-protection"
+    if pt in ("LPGX", "MLPG"):
+        return "gas"
+    if pt == "ZIPS":
+        if "FENCE" in cat or "FENCE" in d:
+            return "fencing"
+        return "general"
+    if pt in ("BLDG", "MBLD"):
+        if at in ("RE-ROOF/REPAIR", "ROOF MAINTENANCE") or \
+                any(k in d for k in ("REROOF", "RE-ROOF", "RE ROOF",
+                                     "ROOFING", "NEW ROOF")):
+            return "roofing"
+        if at == "DEMOLISH":
+            return "demolition"
+        if at == "FENCE NOMASONRY" or cat == "FENCE" or "FENCE" in d:
+            return "fencing"
+        if at == "FOUNDATION ONLY":
+            return "foundation"
+        if at in ("NEW", "SHELL ONLY") and "PAVING" not in pu:
+            return "new-construction"
+        if "SIGN" in d:
+            return "signage"
+        return "general"
+    return "general"

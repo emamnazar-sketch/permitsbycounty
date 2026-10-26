@@ -376,6 +376,43 @@ CFG = {
                      'reported: identical buildings in one development can state the same '
                      'estimated cost on each of their permits.</p>'),
     },
+    "fl/miami-dade": {
+        "registry": "miami-dade-fl",
+        "state_name": "Florida", "state_abbr": "FL",
+        "county_name": "Miami-Dade County", "crumb_county": "Miami-Dade County, Florida",
+        "h1": "Building Permits in Miami-Dade County, Florida",
+        "city": "Miami",
+        "source_short": "Miami-Dade County",
+        "source_line": "Miami-Dade County open data — building permits issued by Miami-Dade County",
+        "creator": "Miami-Dade County",
+        "cite_place": "Miami-Dade County",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Miami-Dade's EstimatedValue failed validation on the full
+        # window (registry field_map.valuation — the figure is a
+        # master-permit value restated on its sub-permits, and
+        # standalone values are corrupted at the top end, 24 permits
+        # above $2B): the normalizer carries no valuation at all, so
+        # the county runs counts-only by construction.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is Miami-Dade County's own residential/commercial "
+                          "flag for each permit (Residential / Commercial)."),
+        "window_start": "2025-10-25",
+        "lede_hub": ("Every building permit issued by Miami-Dade County — counted and "
+                     "sorted by trade, category, and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by '
+                     '<strong>Miami-Dade County</strong> — the permits the county itself '
+                     'issues, for unincorporated Miami-Dade County and county projects. The '
+                     'county\'s incorporated cities (Miami, Hialeah, and the other '
+                     'municipalities) issue their own permits and are not in this feed, so '
+                     'totals here are county-issued totals — labeled as such, never blended. '
+                     'Two facts about the county\'s data shape the figures. Trade permits '
+                     'issued under a master building permit are separate county permits '
+                     'with their own permit numbers and are counted as such. And the '
+                     'county\'s estimated-value field repeats a master permit\'s value on '
+                     'its sub-permits and carries corrupted figures at the top end (24 '
+                     'permits state more than two billion dollars), so this report publishes permit '
+                     'counts, not a dollar total that would misstate the work.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",
