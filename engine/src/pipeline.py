@@ -171,7 +171,8 @@ def main():
     ap.add_argument("--since", required=True, help="window field >= this ISO date")
     ap.add_argument("--field", default="application_start_date",
                     choices=["application_start_date", "applieddate", "issue_date", "issued_date",
-                             "issueddate", "permitissuedate", "DATE ISSUED", "File_Date"],
+                             "issueddate", "permitissuedate", "DATE ISSUED", "File_Date",
+                             "issue_permit_date"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -340,7 +341,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date", "issue_permit_date"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

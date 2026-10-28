@@ -661,3 +661,57 @@ def classify_miami_trade(permit_type="", app_type="", comments="",
             return "signage"
         return "general"
     return "general"
+
+
+def classify_orlando_trade(application_type="", worktype=""):
+    """Orlando (City of Orlando Socrata ryhf-m453) trade classification.
+
+    The city's application_type names the licensed trade families
+    directly (Electrical, Plumbing, Mechanical Permit, GAS, Fire
+    Permit, Demolition Permit) — those win, except solar: a Solar
+    worktype is filed under the Electrical, Building, and Plumbing
+    families alike (218 window permits) and is the city's own solar
+    family wherever it appears (the Miami solar rule). Inside the
+    Building family the worktype separates roofing (Roof), fencing
+    (Fence), signage (Sign), and new construction (New); inside
+    Engineering, SFR (single-family residence site permits) is new
+    construction. Everything else — Building repair/alteration/pool/
+    accessory work, Engineering site work, and FloodPlain elevation
+    certificates — is 'general'.
+
+    Cross-tab measured on the full window 2026-10-27 (see registry
+    audit). Deterministic; first match wins. Kept separate so other
+    counties cannot be disturbed. Simulated totals: electrical 6,119 ·
+    hvac 3,970 · plumbing 3,439 · roofing 3,131 · new-construction
+    1,943 · fire-protection 1,733 · general 6,227 · fencing 540 ·
+    gas 455 · signage 407 · demolition 242 · solar 218.
+    """
+    at = (application_type or "").strip()
+    wt = (worktype or "").strip()
+    if at == "Demolition Permit":
+        return "demolition"
+    if wt == "Solar":
+        return "solar"
+    if at == "Electrical":
+        return "electrical"
+    if at == "Plumbing":
+        return "plumbing"
+    if at == "Mechanical Permit":
+        return "hvac"
+    if at == "GAS":
+        return "gas"
+    if at == "Fire Permit":
+        return "fire-protection"
+    if at == "Building Permit":
+        if wt == "Roof":
+            return "roofing"
+        if wt == "Fence":
+            return "fencing"
+        if wt == "Sign":
+            return "signage"
+        if wt == "New":
+            return "new-construction"
+        return "general"
+    if at == "Engineering" and wt == "SFR":
+        return "new-construction"
+    return "general"

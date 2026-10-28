@@ -413,6 +413,41 @@ CFG = {
                      'permits state more than two billion dollars), so this report publishes permit '
                      'counts, not a dollar total that would misstate the work.</p>'),
     },
+    "fl/orange": {
+        "registry": "orlando-orange-fl",
+        "state_name": "Florida", "state_abbr": "FL",
+        "county_name": "Orange County", "crumb_county": "Orange County, Florida",
+        "h1": "Building Permits in Orange County, Florida",
+        "city": "Orlando",
+        "source_short": "City of Orlando",
+        "source_line": "City of Orlando open data — permit applications issued by the City of Orlando",
+        "creator": "City of Orlando",
+        "cite_place": "Orange County (Orlando)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Orlando's estimated_cost passed validation on the full window
+        # (registry field_map.valuation — stated on 100% of permits, only
+        # 18 at $1, a project's building and trade permits state different
+        # costs so there is no master-restatement, the largest permit is
+        # 7.1% of the total; DB sum verified against the source-side
+        # total to the cent): values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is the City of Orlando's own plan-review class for each "
+                          "permit (Residential / Commercial)."),
+        "window_start": "2025-10-27",
+        "lede_hub": ("Every building permit issued by the City of Orlando — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Orlando</strong>. Orange County\'s unincorporated '
+                     'permits run through a separate county system and are not in this '
+                     'feed, so totals here are Orlando totals — labeled as such, never '
+                     'blended. Two facts about the city\'s data shape the figures. The '
+                     'dataset is the city\'s permit <strong>applications</strong> register, '
+                     'so this report counts only applications the city actually issued — '
+                     'each one carries the issue date the city recorded. And project '
+                     'values are the applicants\' estimated costs, printed as reported: '
+                     'identical buildings in one development can state the same estimated '
+                     'cost on each of their permits.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",

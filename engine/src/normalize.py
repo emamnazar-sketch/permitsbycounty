@@ -8,7 +8,8 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_fort_worth_trade,
-                    classify_miami_trade, classify_philly_trade,
+                    classify_miami_trade, classify_orlando_trade,
+                    classify_philly_trade,
                     classify_raleigh_trade, classify_sa_trade,
                     classify_trade, classify_nyc_trade,
                     classify_sf_trade, classify_seattle_trade)
@@ -1029,6 +1030,70 @@ def normalize_miami(raw, reg):
     }
 
 
+def normalize_orlando(raw, reg):
+    """One raw Orlando row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the permit number is exactly
+    unique in the trailing-12-month issued window (28,424 rows =
+    28,424 distinct permit_number, measured 2026-10-27) —
+    source_record_id = permit_number, no collapsing. The dataset is
+    an applications register; the pull window is issue_permit_date,
+    so every record was issued by the city. Privacy: the pull is
+    column-restricted by the registry pull_select — the feed's
+    property-owner fields (property_owner_name, parcel_owner_name),
+    the individual-licensee field (contractor), and the contractor's
+    address/phone fields are never requested from the API at all.
+    The only name carried is contractor_name, the permit's published
+    contractor company of record (present on 27,176 of 28,424 window
+    permits). Valuation: estimated_cost is stored and published as
+    reported (it passed validation on the full window — see registry
+    field_map.valuation). Category: the city's plan_review_type —
+    Residential 1/2 and Residential 3 or more = residential,
+    Commercial = commercial, anything else NULL. The feed publishes
+    no property ZIP code, so zip stays NULL (the Miami treatment).
+    """
+    sid = _clean(raw.get("permit_number"))
+    if not sid:
+        return None
+    address = _clean(raw.get("permit_address"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    contractor = _clean(raw.get("contractor_name"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("application_status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("plan_review_type")) or "").strip()
+    category = {"Residential 1/2": "residential",
+                "Residential 3 or more": "residential",
+                "Commercial": "commercial"}.get(cat_src)
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Orlando",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": None,  # feed publishes no property ZIP (registry field_map)
+        "permit_type": _clean(raw.get("application_type")),
+        "trade": classify_orlando_trade(raw.get("application_type"),
+                                        raw.get("worktype")),
+        "category": category,
+        "project_description": _clean(raw.get("project_name")),
+        "valuation": _num(raw.get("estimated_cost")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("processed_date")),
+        "issue_date": _date(raw.get("issue_permit_date")),
+        "source_updated_date": None,  # dataset publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1045,4 +1110,5 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "san-antonio-bexar-tx": normalize_san_antonio,
                "fort-worth-tarrant-tx": normalize_fort_worth,
                "raleigh-wake-nc": normalize_raleigh,
-               "miami-dade-fl": normalize_miami}
+               "miami-dade-fl": normalize_miami,
+               "orlando-orange-fl": normalize_orlando}

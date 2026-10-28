@@ -1,0 +1,72 @@
+{
+ "api_base": "https://data.cityoforlando.net/resource/ryhf-m453.json",
+ "audit_2026_10_27": "FRESH AUDIT PASSED (first-hand, 2026-10-27) — the expansion order's fourth county, after Mecklenburg NC was SKIPPED 2026-10-23, Wake NC went live 2026-10-23, and Miami-Dade FL went live 2026-10-25. (1) Dataset 'Permit Applications' (City of Orlando, Socrata ryhf-m453): 1,113,522 rows all-time, 968,426 carrying an issue_permit_date; rowsUpdatedAt 2026-10-27T19:30:13Z (same day as the audit); max issue_permit_date 2026-10-27. (2) VOLUME STABILITY measured by issue year: 31,687 (2020) / 33,202 / 36,499 / 35,659 / 31,774 (2024) / 30,721 (2025) / 23,413 (2026 YTD through Oct 27); months run 2,035-2,879 through 2024-2026 — no collapse of the Mecklenburg kind. (3) Identity measured on the trailing-12-month window (issue_permit_date >= 2025-10-27): 28,424 rows = 28,424 distinct permit_number, 0 duplicates, 0 null permit numbers. (4) Coverage is City of Orlando permits only: Orange County's unincorporated permits run through a separate county system and are NOT in this feed (printed on the hub). (5) Terms: City of Orlando open-data portal standard; the WAVE1 audit rated this feed READY with High confidence; figures published 'as reported by the City of Orlando' with attribution.",
+ "county": "Orange County",
+ "county_fips": "12095",
+ "county_slug": "fl/orange",
+ "coverage_note": "Permits issued by the City of Orlando only. Orange County (unincorporated) permits run through a separate county system and are not in this feed; totals here are City of Orlando totals, labeled as such.",
+ "dataset_id": "ryhf-m453",
+ "date_onboarded": "2026-10-27",
+ "dedupe_rule": {
+  "definition": "One published permit = one permit_number in the City of Orlando's Permit Applications dataset, restricted to applications the city actually issued (issue_permit_date present). The dataset's grain is one row per permit application: no collapsing applies or is needed.",
+  "measurement": "Trailing-12-month window (issue_permit_date >= 2025-10-27), measured 2026-10-27: 28,424 rows = 28,424 distinct permit_number, 0 duplicates, 0 nulls. The pipeline's in-batch duplicate gate and the (county_id, source_record_id) upsert key guard every future pull."
+ },
+ "field_map": {
+  "address": "permit_address, as published (whitespace collapsed; all-caps values title-cased). The feed publishes no property ZIP code, so zip stays NULL.",
+  "application_date": "processed_date (the date the city processed the application; present on 28,396 of 28,424 window permits).",
+  "category": "plan_review_type, the city's own review class: 'Residential 1/2' and 'Residential 3 or more' = Residential (18,937 window permits), 'Commercial' = Commercial (9,486); the single 'No Plan Review Type' permit stays NULL.",
+  "contractor_rule": "contractor_name ONLY — the permit's published contractor company of record (present on 27,176 of 28,424 window permits). The pull's column list never requests property_owner_name or parcel_owner_name (property-owner person names), contractor (the individual licensee-name field), contractor_address, contractor_phone_number, or private_provider_qualifier_name.",
+  "issue_date": "issue_permit_date. The window is defined on it: a record enters this report when the city records an issue date — the dataset is an applications register, so applications never issued (145,096 all-time rows carry no issue date) are outside the population by definition.",
+  "permit_number": "permit_number (unique in the window, see dedupe_rule).",
+  "permit_type": "application_type, the city's own permit family naming (Building Permit, Electrical, Mechanical Permit, Plumbing, Engineering, Fire Permit, GAS, Demolition Permit, FloodPlain).",
+  "project_description": "project_name, the city's own project label for the permit, as published.",
+  "status": "application_status, mapped through status_map; the verbatim source value is kept in status_source. Window statuses: Finaled 16,898 / Open 10,923 / Completed 378 / Closed 163 / Hold 55 / Hardhold 7 — every window record carries an issue date, so post-issuance states stay in the population (the Raleigh treatment).",
+  "valuation": "estimated_cost, stored and published as reported. Measured on the full window (2026-10-27): stated on 28,424 of 28,424 permits (0 null), 2,371 at $0, only 18 at $1, 26,035 above $1; window total $2,953,602,837.65. No restatement pathology: a project's building and trade permits state different costs (e.g. the Tradeport hangar's building permit states $141,500,000 and its electrical permit $25,125,000 — its own slice, not the project figure repeated), only 3 permits state more than $100,000,000, and the largest ($210,000,000, a hospital medical-office building) is 7.1% of the total — the Chicago flagship shape. Repeated values are round-number estimates and identical buildings in one development stating the same estimate 2-3 times (worst-case repeated-value excess ~5% of the total, the Boston shape). VALUES PUBLISH; the DB window sum must reproduce the source-side total, and September 2026 must match the source exactly (2,035 permits / $122,131,123.57)."
+ },
+ "history_range": "issue_permit_date 1907 onward in the source (legacy records); we backfill the trailing 12 months only (site rule).",
+ "jurisdiction": "Orlando",
+ "jurisdiction_label": "City of Orlando",
+ "license": "City of Orlando open-data terms (portal standard); attribution: City of Orlando, Florida",
+ "order_tiebreak": "permit_number",
+ "pull_select": [
+  "permit_number",
+  "application_type",
+  "worktype",
+  "permit_address",
+  "contractor_name",
+  "estimated_cost",
+  "processed_date",
+  "issue_permit_date",
+  "application_status",
+  "project_name",
+  "plan_review_type",
+  "square_footage"
+ ],
+ "qa_thresholds": {
+  "backfill_expected_volume_12mo": 28424,
+  "backfill_volume_tolerance": 0.25,
+  "freshness_max_age_hours": 48,
+  "valuation_max_plausible_usd": 2000000000
+ },
+ "rate_limit": "Socrata anonymous tier; paged at 5,000 rows/request with the adapter's 0.4s pacing. Note: the anonymous tier intermittently returns HTTP 403 on $where clauses containing text literals with spaces (measured during the audit) — the pipeline's date-only window clause is unaffected.",
+ "refresh_tier": 1,
+ "registry_status": "live",
+ "source_name": "City of Orlando open data — Permit Applications",
+ "source_type": "socrata",
+ "source_url": "https://data.cityoforlando.net",
+ "state": "FL",
+ "status_map": {
+  "CLOSED": "complete",
+  "COMPLETED": "complete",
+  "FINALED": "complete",
+  "HARDHOLD": "on-hold",
+  "HOLD": "on-hold",
+  "OPEN": "issued",
+  "STOP WORK": "stop-work",
+  "VOID": "void"
+ },
+ "terms_status": "verified-open-2026-10-27: the City of Orlando publishes this dataset on its open-data portal for public reuse; figures are published 'as reported by the City of Orlando' with attribution; no endorsement is implied (WAVE1 audit verdict READY, High confidence).",
+ "update_cadence": "Daily (applications stream, continuous); MEASURED 2026-10-27: rowsUpdatedAt 2026-10-27T19:30:13Z (same day) and newest issue_permit_date 2026-10-27. Freshness (gate 5) is measured as the dataset's rowsUpdatedAt under a 48h threshold (the Socrata-county standard).",
+ "watermark_field": "issue_permit_date + permit_number — refresh re-pulls by the issue_permit_date watermark and upserts.",
+ "wave": "wave-1-spine"
+}
