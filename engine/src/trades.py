@@ -715,3 +715,79 @@ def classify_orlando_trade(application_type="", worktype=""):
     if at == "Engineering" and wt == "SFR":
         return "new-construction"
     return "general"
+
+
+def classify_hillsborough_trade(permit_type="", description=""):
+    """Hillsborough County (ArcGIS Accela dashboard extract) trade
+    classification.
+
+    The county's TYPE names eight families and none of them is a
+    licensed trade: Residential/Commercial New Construction, Addition,
+    Building Alterations (Renovations), and Miscellaneous. Following
+    the Fort Worth / Cincinnati discipline, classification starts from
+    the source's own naming — a New Construction type is new
+    construction — and the scope description is mined ONLY for strong,
+    specific signals, in this precedence:
+
+    * solar anywhere in the scope;
+    * a sign installation (install/new/replace + sign, or 'signage') —
+      signs are a real Hillsborough miscellaneous family (measured
+      325 window permits), and sign scopes that mention connecting to
+      existing electrical are sign permits, not electrical permits,
+      so this rule fires before the electrical rule;
+    * strong roofing signals only (re-roof / reroof / roof
+      replacement / roofing / new roof) — a screen enclosure's roof
+      or a roof-mounted stand is not a roofing permit and does not
+      qualify (the Philadelphia interior-demo trap, roofing shape);
+    * demolition as the permit's primary work (scope opens with
+      demo/demolition, or names demolishing a structure) — interior
+      demo inside a remodel is alteration work, not demolition;
+    * fire sprinkler / fire alarm scopes;
+    * strong HVAC signals (the letters HVAC, furnace, an air
+      conditioning system, a condensing unit, ductwork) — a room
+      named for A/C is not HVAC work and carries none of these;
+    * strong plumbing signals (water heater, repipe) and strong
+      electrical signals (service upgrade, panel upgrade, EV
+      charger, electrical service) — a remodel scope that merely
+      mentions plumbing or electrical among many trades stays
+      general, as in San Antonio, where pools, screen enclosures,
+      sheds, additions, and renovations likewise land in general.
+
+    Simulated on the full window pull before build (2026-10-29):
+    general 6,364 · new-construction 2,640 · signage 325 · roofing
+    116 · hvac 102 · demolition 54 · electrical 38 · solar 35 ·
+    plumbing 30 · fire-protection 14. Deterministic; first match
+    wins; kept separate so other counties cannot be disturbed.
+    """
+    import re as _re_h
+    t = (permit_type or "").strip().lower()
+    d = (description or "").lower()
+    if "new construction" in t:
+        return "new-construction"
+    if "solar" in d:
+        return "solar"
+    if _re_h.search(r"(install\w*|new|replace\w*|refac\w*|rebrand\w*)"
+                    r".{0,40}\bsign", d) or "signage" in d \
+            or d.strip().startswith("sign"):
+        return "signage"
+    if any(k in d for k in ("re-roof", "reroof", "re roof",
+                            "roof replacement", "roofing", "new roof",
+                            "replace roof")):
+        return "roofing"
+    if _re_h.match(r"\s*(demo|demolition|demolish)", d) \
+            or "demolish" in d \
+            or _re_h.search(r"demolition of (an?|the) (existing )?"
+                            r"(house|home|building|structure|residence|"
+                            r"mobile|commercial)", d):
+        return "demolition"
+    if "fire sprinkler" in d or "fire alarm" in d:
+        return "fire-protection"
+    if any(k in d for k in ("hvac", "furnace", "air conditioning system",
+                            "condensing unit", "ductwork")):
+        return "hvac"
+    if any(k in d for k in ("water heater", "repipe", "repiping")):
+        return "plumbing"
+    if any(k in d for k in ("service upgrade", "panel upgrade",
+                            "ev charger", "electrical service")):
+        return "electrical"
+    return "general"

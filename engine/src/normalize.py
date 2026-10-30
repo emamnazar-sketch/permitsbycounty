@@ -8,7 +8,7 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_fort_worth_trade,
-                    classify_miami_trade, classify_orlando_trade,
+                    classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
                     classify_philly_trade,
                     classify_raleigh_trade, classify_sa_trade,
                     classify_trade, classify_nyc_trade,
@@ -1094,6 +1094,100 @@ def normalize_orlando(raw, reg):
     }
 
 
+def _hills_city_zip(v):
+    """Hillsborough's CITY_1 is one field: 'Tampa 33625' — a postal
+    city plus its ZIP. Returns (city, zip): the trailing 5-digit group
+    is the ZIP and the rest is the city; a value with no ZIP group is
+    the city alone; an empty value — or the county's own name standing
+    in for a city on 4 window permits — names no city, so the county
+    seat (Tampa) stands in, the Austin default treatment."""
+    s = _clean(v)
+    if not s:
+        return "Tampa", None
+    parts = s.rsplit(" ", 1)
+    if len(parts) == 2 and parts[1].isdigit() and len(parts[1]) == 5:
+        city = parts[0].strip()
+        city = _title(city) if city.isupper() else city
+        return (city or "Tampa"), parts[1]
+    city = _title(s) if s.isupper() else s
+    if city.lower() == "hillsborough county":
+        return "Tampa", None
+    return city, None
+
+
+def normalize_hillsborough(raw, reg):
+    """One raw Hillsborough County row -> standard record dict (or None).
+
+    Input is one ISSUED-category row of the county's merged
+    issued/CO layer: the pull window is ISSUED_DATE, and every window
+    row carries CATEGORY='ISSUED' (measured 9,718 of 9,718,
+    2026-10-29). The same permit's certificate-of-occupancy row —
+    ISSUED_DATE null, its own CATEGORY='CO' row elsewhere in the
+    layer — is outside the window by definition, so no collapsing
+    applies: identity (registry dedupe_rule) is one row per permit,
+    the permit number exactly unique in the window (9,718 rows =
+    9,718 distinct PERMIT__). Privacy: the layer's 25 fields publish
+    no owner, applicant, or contractor name at all (full schema
+    verified 2026-10-29), so contractor stays NULL, never inferred
+    (the Philadelphia treatment). Valuation: the county's Value
+    field FAILED validation on the full window (registry
+    field_map.valuation — a project figure restated on the project's
+    separate permits, and single-family homes stated at $95–99
+    million), so valuation stays NULL and Hillsborough runs
+    counts-only (the Miami-Dade treatment; the raw field stays in
+    the vault, unpublished). The layer publishes no application
+    date, so application_date stays NULL (the Philadelphia
+    treatment). Category: the county's TYPE names each permit
+    Residential or Commercial — that prefix is the category
+    (7,857 / 1,861 in the window). City and ZIP come from the
+    layer's single CITY_1 postal field (see _hills_city_zip).
+    Status is the permit's current status, mapped through
+    status_map with the verbatim value kept in status_source; every
+    window record carries an issue date, so post-issuance states
+    (Complete, Expired, In Process) stay in the population (the
+    Raleigh treatment).
+    """
+    sid = _clean(raw.get("PERMIT__"))
+    if not sid:
+        return None
+    address = _clean(raw.get("ADDRESS"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    city, zipc = _hills_city_zip(raw.get("CITY_1"))
+    status_src = _clean(raw.get("STATUS_1"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    ptype = _clean(raw.get("TYPE"))
+    cat_src = (ptype or "").lower()
+    category = ("residential" if cat_src.startswith("residential")
+                else "commercial" if cat_src.startswith("commercial") else None)
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": ptype,
+        "trade": classify_hillsborough_trade(ptype, raw.get("DESCRIPTION")),
+        "category": category,
+        "project_description": _clean(raw.get("DESCRIPTION")),
+        "valuation": None,  # field failed validation; counts-only (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": None,  # layer publishes no application-date field
+        "issue_date": (_epoch_ms_date(raw.get("ISSUED_DATE"))
+                       if isinstance(raw.get("ISSUED_DATE"), (int, float))
+                       else _date(raw.get("ISSUED_DATE"))),
+        "source_updated_date": None,  # layer publishes no per-row load stamp
+        "contractor_name": None,  # layer publishes no contractor field (above)
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1111,4 +1205,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "fort-worth-tarrant-tx": normalize_fort_worth,
                "raleigh-wake-nc": normalize_raleigh,
                "miami-dade-fl": normalize_miami,
-               "orlando-orange-fl": normalize_orlando}
+               "orlando-orange-fl": normalize_orlando,
+               "hillsborough-fl": normalize_hillsborough}
+

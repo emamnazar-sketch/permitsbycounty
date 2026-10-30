@@ -448,6 +448,47 @@ CFG = {
                      'identical buildings in one development can state the same estimated '
                      'cost on each of their permits.</p>'),
     },
+    "fl/hillsborough": {
+        "registry": "hillsborough-fl",
+        "state_name": "Florida", "state_abbr": "FL",
+        "county_name": "Hillsborough County", "crumb_county": "Hillsborough County, Florida",
+        "h1": "Building Permits in Hillsborough County, Florida",
+        "city": "Tampa",
+        "source_short": "Hillsborough County",
+        "source_line": "Hillsborough County open data — Accela issued permits dashboard extract",
+        "creator": "Hillsborough County",
+        "cite_place": "Hillsborough County",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Hillsborough's Value field failed validation on the full
+        # window (registry field_map.valuation — a project figure
+        # restated on the project's separate permits, and ordinary
+        # single-family homes stated at $95–99 million): the
+        # normalizer carries no valuation at all, so the county runs
+        # counts-only by construction (the Miami-Dade treatment).
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category follows the county's own naming of each permit "
+                          "(Residential / Commercial)."),
+        "window_start": "2025-10-29",
+        "lede_hub": ("Every building permit issued by Hillsborough County — counted and "
+                     "sorted by trade, category, and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by '
+                     '<strong>Hillsborough County</strong> — the permits the county itself '
+                     'issues, for unincorporated Hillsborough County and county-served areas. '
+                     'The City of Tampa issues its own permits through its own system and they '
+                     'are not in this feed, so totals here are county-issued totals — labeled '
+                     'as such, never blended. Three facts about the county\'s data shape the '
+                     'figures. The county\'s published layer merges each permit\'s issued '
+                     'record with its certificate-of-occupancy record, so this report counts '
+                     'only the issued records — each permit once, by its permit number. The '
+                     'county names no licensed trades in its permit families, so trade '
+                     'figures come from each permit\'s own scope text, read only for strong '
+                     'signals (a re-roof, a sign installation, an HVAC system); pools, screen '
+                     'enclosures, sheds, additions, and renovations stay in General &amp; '
+                     'Other. And the county\'s stated project-value field repeats one '
+                     'project\'s figure across its separate permits and states ordinary '
+                     'single-family homes at 95 million dollars and more, so this report publishes '
+                     'permit counts, not a dollar total that would misstate the work.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",
