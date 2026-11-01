@@ -791,3 +791,48 @@ def classify_hillsborough_trade(permit_type="", description=""):
                             "ev charger", "electrical service")):
         return "electrical"
     return "general"
+
+
+def classify_pittsburgh_trade(permit_type="", work_type=""):
+    """Pittsburgh PLI (WPRDC CKAN) trade classification.
+
+    PLI names the licensed trades itself in permit_type — ELECTRICAL,
+    MECHANICAL (the city's HVAC/mechanical family), Fire Alarm Permit,
+    and Suppression System Permit (fire sprinkler/suppression) are
+    their own permit families — so, following the Fort Worth /
+    Cincinnati discipline, classification starts from the source's own
+    family naming and never mines scope text. A trade permit whose
+    work_type says NEW CONSTRUCTION is still that trade's permit (an
+    electrical permit for a new building is an electrical permit), so
+    the one work_type split applies only inside the two building
+    families (Building & Development Application and the legacy
+    BUILDING family): a New Construction work type there is new
+    construction; everything else in those families — alterations,
+    additions — stays general, as do the Floodplain, Storm Water, Land
+    Operations, and occupancy families.
+
+    Measured on the published window (issue_date >= 2025-10-31, Plan
+    Review Meeting records excluded at pull; 9,749 permits, verified
+    2026-10-31): electrical 2,774 · general 4,829 · hvac 1,001 ·
+    fire-protection 387 · fire-alarm 358 · demolition 239 ·
+    new-construction 159 · signage 2. Deterministic; first match wins;
+    kept separate so other counties cannot be disturbed.
+    """
+    t = (permit_type or "").strip()
+    w = (work_type or "").strip().lower()
+    if t == "ELECTRICAL":
+        return "electrical"
+    if t == "MECHANICAL":
+        return "hvac"
+    if t == "Suppression System Permit":
+        return "fire-protection"
+    if t == "Fire Alarm Permit":
+        return "fire-alarm"
+    if t == "Demolition Permit":
+        return "demolition"
+    if t == "Sign Permit":
+        return "signage"
+    if t in ("Building & Development Application", "BUILDING"):
+        if w == "new construction":
+            return "new-construction"
+    return "general"

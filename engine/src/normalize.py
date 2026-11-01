@@ -9,7 +9,7 @@ import re
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_fort_worth_trade,
                     classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
-                    classify_philly_trade,
+                    classify_philly_trade, classify_pittsburgh_trade,
                     classify_raleigh_trade, classify_sa_trade,
                     classify_trade, classify_nyc_trade,
                     classify_sf_trade, classify_seattle_trade)
@@ -1188,6 +1188,78 @@ def normalize_hillsborough(raw, reg):
     }
 
 
+def normalize_pittsburgh(raw, reg):
+    """One raw Pittsburgh PLI row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the permit_id is exactly unique in
+    the trailing-12-month window (9,758 rows = 9,758 distinct permit_id,
+    measured 2026-10-31 through the CKAN datastore SQL API) —
+    source_record_id = permit_id, no collapsing. Privacy: the pull is
+    column-restricted by the registry pull_select — owner_name, the
+    register's property-owner person-name field, is never requested
+    from the API at all. The only name carried is contractor_name, the
+    permit's published contractor of record (businesses and licensed
+    sole proprietors as PLI names them; present on 4,945 of the 9,749
+    published window permits; the source's empty string carries as NULL).
+    Population: the pull window is issue_date, so every record was
+    issued by the city; post-issuance statuses (Completed, Expired,
+    Revoked) stay in the population with their source status preserved.
+    Valuation: total_project_value FAILED validation on the full
+    window (the register restates one project's figure across its
+    records — see registry field_map.valuation), so it is NOT carried:
+    valuation stays NULL and Pittsburgh publishes counts only.
+    Category: the city's own
+    commercial_or_residential class (Residential / Commercial, on every
+    window permit). Address: the register's address field carries the
+    full postal string ('5112 CHAPLAIN Way, Pittsburgh, 15207-'); the
+    street portion before the first comma is the address, the city is
+    Pittsburgh (the issuing jurisdiction), and the ZIP comes from the
+    register's own zip_code field.
+    """
+    sid = _clean(raw.get("permit_id"))
+    if not sid:
+        return None
+    full_addr = _clean(raw.get("address"))
+    address = None
+    if full_addr:
+        address = " ".join(full_addr.split(",", 1)[0].split()) or None
+        if address and address.isupper():
+            address = _title(address)
+    zipc = _clean(raw.get("zip_code"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _clean(raw.get("contractor_name"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("commercial_or_residential")) or "").lower()
+    category = cat_src if cat_src in ("residential", "commercial") else None
+    ptype = _clean(raw.get("permit_type"))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Pittsburgh",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": ptype,
+        "trade": classify_pittsburgh_trade(ptype, raw.get("work_type")),
+        "category": category,
+        "project_description": _clean(raw.get("work_description")),
+        "valuation": None,  # field failed validation; counts-only (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": None,  # register publishes no application-date field
+        "issue_date": _date(raw.get("issue_date")),
+        "source_updated_date": None,  # register publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1206,5 +1278,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "raleigh-wake-nc": normalize_raleigh,
                "miami-dade-fl": normalize_miami,
                "orlando-orange-fl": normalize_orlando,
-               "hillsborough-fl": normalize_hillsborough}
+               "hillsborough-fl": normalize_hillsborough,
+               "pittsburgh-allegheny-pa": normalize_pittsburgh}
 

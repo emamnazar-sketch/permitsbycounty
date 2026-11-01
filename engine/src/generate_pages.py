@@ -125,6 +125,41 @@ CFG = {
                      'this feed, so totals here are Seattle totals — labeled as such, never blended. '
                      'County-wide coverage is not implied.</p>'),
     },
+    "pa/allegheny": {
+        "registry": "pittsburgh-allegheny-pa",
+        "state_name": "Pennsylvania", "state_abbr": "PA",
+        "county_name": "Allegheny County", "crumb_county": "Allegheny County, Pennsylvania",
+        "h1": "Building Permits in Allegheny County, Pennsylvania",
+        "city": "Pittsburgh",
+        "source_short": "City of Pittsburgh",
+        "source_line": "City of Pittsburgh open data (Western Pennsylvania Regional Data Center) — PLI permits issued by the City of Pittsburgh",
+        "creator": "City of Pittsburgh",
+        "cite_place": "Allegheny County (Pittsburgh)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Pittsburgh's total_project_value failed validation on the full
+        # window (registry field_map.valuation — the register restates one
+        # project's declared value across its records, and the largest
+        # figures sit on a placard and a meeting record, not on
+        # construction permits): the normalizer carries no valuation at
+        # all, so the county runs counts-only by construction.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is the City of Pittsburgh's own residential/commercial "
+                          "class for each permit (Residential / Commercial)."),
+        "window_start": "2025-10-31",
+        "lede_hub": ("Every building permit issued by the City of Pittsburgh — counted and "
+                     "sorted by trade, category, and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Pittsburgh</strong>. Allegheny County\'s other '
+                     'municipalities issue their own permits through their own systems and are '
+                     'not in this feed, so totals here are Pittsburgh totals — labeled as such, '
+                     'never blended. Two facts about the city\'s data shape the figures. The '
+                     'register also carries plan-review meeting records, which are not permits '
+                     'and are not counted here. And the register\'s project-value field repeats '
+                     'one project\'s declared value across its separate permits — the largest '
+                     'figure in it sits on an occupant-load placard, not a construction permit — '
+                     'so this report publishes permit counts, not a dollar total that would '
+                     'misstate the work.</p>'),
+    },
     "pa/philadelphia": {
         "registry": "philadelphia-pa",
         "state_name": "Pennsylvania", "state_abbr": "PA",
