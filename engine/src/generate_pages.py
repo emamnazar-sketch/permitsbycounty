@@ -814,6 +814,86 @@ FOOTER = """<footer class="site">
 </footer>"""
 
 
+# County-hub digest signup: the real form, embedded on the hub page itself
+# (Amam's order, 2026-11-01 — replaces the old "Sign up on the home page"
+# link-away). Same endpoint and behavior as the homepage form
+# (POST /api/digest, JSON {email, county}); the homepage sends county:"",
+# a hub sends its own county so the signup lands pre-selected for that
+# county's digest. Placeholders are filled by generate() via .replace()
+# (plain string, not an f-string, so the CSS/JS braces stay literal).
+DIGEST_BLOCK = """
+    <h2>Get the {COUNTY_NAME} digest</h2>
+    <p>{DIGEST_LINE} Sign up right here — no spam, unsubscribe anytime.</p>
+    <style>
+    .digest-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin:6px 0 10px}
+    .digest-form{display:flex;gap:10px;flex-wrap:wrap}
+    .digest-form input[type=email]{flex:1 1 260px;font:inherit;font-size:16.5px;padding:12px 14px;border:1px solid var(--border);border-radius:7px;background:#fff;color:#000}
+    .digest-form button{font:inherit;font-weight:700;font-size:16.5px;background:var(--teal);color:#fff;border:0;border-radius:7px;padding:12px 22px;cursor:pointer}
+    .digest-form button:hover{background:var(--teal-dark)}
+    .digest-done{display:none;font-size:16px;margin-top:10px}
+    .digest-done.show{display:block}
+    @media (max-width:760px){.digest-form button{width:100%}}
+    </style>
+    <div class="digest-box">
+    <form class="digest-form" id="digestForm" data-county="{COUNTY_VALUE}" novalidate>
+      <input type="email" id="digestEmail" placeholder="Your email address" aria-label="Your email address" autocomplete="email" />
+      <button type="submit">Join the digest</button>
+    </form>
+    <div class="digest-done" id="digestDone" role="status"></div>
+    </div>
+    <script>
+    (function () {
+      var form = document.getElementById("digestForm");
+      var input = document.getElementById("digestEmail");
+      var done = document.getElementById("digestDone");
+      if (!form || !input || !done) return;
+      var btn = form.querySelector('button[type="submit"]');
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var email = input.value.trim();
+        if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
+          done.textContent = "That email doesn't look right — check it and try again.";
+          done.classList.add("show");
+          return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = "Joining…"; }
+        fetch("/api/digest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, county: form.getAttribute("data-county") || "" })
+        })
+          .then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) { return { status: res.status, data: data }; });
+          })
+          .then(function (r) {
+            if (r.data && r.data.ok === true) {
+              input.value = "";
+              form.style.display = "none";
+              done.textContent = r.data.already
+                ? "You're already on the list — you're all set."
+                : "You're in! Your first digest arrives with the next weekly issue.";
+              done.classList.add("show");
+            } else if (r.status === 400) {
+              done.textContent = "That email doesn't look right — check it and try again.";
+              done.classList.add("show");
+            } else {
+              done.textContent = "Something went wrong on our side — please try again in a minute.";
+              done.classList.add("show");
+            }
+          })
+          .catch(function () {
+            done.textContent = "Something went wrong on our side — please try again in a minute.";
+            done.classList.add("show");
+          })
+          .then(function () {
+            if (btn) { btn.disabled = false; btn.textContent = "Join the digest"; }
+          });
+      });
+    })();
+    </script>
+"""
+
+
 def esc(s):
     return html.escape(str(s if s is not None else ""), quote=True)
 
@@ -1154,6 +1234,10 @@ def generate(con, slug):
     <p class="note">{esc(cfg.get('category_note') or f"Category is the {src}'s own residential / commercial class for each permit.")}</p>"""
 
     qa_html = "\n".join(f'<div class="qa"><h3>{esc(q)}</h3><p>{esc(a)}</p></div>' for q, a in qas)
+    digest_block = (DIGEST_BLOCK
+                    .replace("{COUNTY_NAME}", esc(cfg["county_name"]))
+                    .replace("{COUNTY_VALUE}", esc(f"{cfg['county_name']}, {cfg['state_abbr']}"))
+                    .replace("{DIGEST_LINE}", digest_line))
     body = f"""
     <p class="eyebrow">County report &middot; {esc(cfg['state_name'])}</p>
     <h1>{esc(cfg['h1'])}</h1>
@@ -1176,9 +1260,7 @@ def generate(con, slug):
     </table>{category_html}
     <h2>{projects_head}</h2>
     {projects_html}
-    <h2>Get the {esc(cfg['county_name'])} digest</h2>
-    <p>{digest_line}
-    <a href="/#digest">Sign up on the home page</a> — no spam, unsubscribe anytime.</p>
+{digest_block}
 """
     hub = page_shell(
         hub_title, hub_desc, hub_url,

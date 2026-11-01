@@ -150,9 +150,77 @@ footer.site{background:#fff;border-top:1px solid #eef2f0;padding:24px 0 14px;mar
 <tr><td><strong>490 Jamestown Av</strong> <span class='note'>#202603026735</span><br><span class='note'>candlestick area south of harney way development block grades- deep dynamic compaction, surcharge wick drai…</span></td><td>General &amp; Other</td><td class='n'>$3,000,000</td><td>2026-10-28</td></tr>
 <tr><td><strong>333 Ofarrell St</strong> <span class='note'>#202610099257</span><br><span class='note'>(e) lobby to receive (n) carpet, light fixtures, millwork finishes &amp; digital screens. (e) lobby market …</span></td><td>General &amp; Other</td><td class='n'>$2,970,000</td><td>2026-10-26</td></tr>
 </table>
+
     <h2>Get the San Francisco County digest</h2>
-    <p>One free email a week with the county's new permits, biggest projects, and trade movements.
-    <a href="/#digest">Sign up on the home page</a> — no spam, unsubscribe anytime.</p>
+    <p>One free email a week with the county's new permits, biggest projects, and trade movements. Sign up right here — no spam, unsubscribe anytime.</p>
+    <style>
+    .digest-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin:6px 0 10px}
+    .digest-form{display:flex;gap:10px;flex-wrap:wrap}
+    .digest-form input[type=email]{flex:1 1 260px;font:inherit;font-size:16.5px;padding:12px 14px;border:1px solid var(--border);border-radius:7px;background:#fff;color:#000}
+    .digest-form button{font:inherit;font-weight:700;font-size:16.5px;background:var(--teal);color:#fff;border:0;border-radius:7px;padding:12px 22px;cursor:pointer}
+    .digest-form button:hover{background:var(--teal-dark)}
+    .digest-done{display:none;font-size:16px;margin-top:10px}
+    .digest-done.show{display:block}
+    @media (max-width:760px){.digest-form button{width:100%}}
+    </style>
+    <div class="digest-box">
+    <form class="digest-form" id="digestForm" data-county="San Francisco County, CA" novalidate>
+      <input type="email" id="digestEmail" placeholder="Your email address" aria-label="Your email address" autocomplete="email" />
+      <button type="submit">Join the digest</button>
+    </form>
+    <div class="digest-done" id="digestDone" role="status"></div>
+    </div>
+    <script>
+    (function () {
+      var form = document.getElementById("digestForm");
+      var input = document.getElementById("digestEmail");
+      var done = document.getElementById("digestDone");
+      if (!form || !input || !done) return;
+      var btn = form.querySelector('button[type="submit"]');
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var email = input.value.trim();
+        if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
+          done.textContent = "That email doesn't look right — check it and try again.";
+          done.classList.add("show");
+          return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = "Joining…"; }
+        fetch("/api/digest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, county: form.getAttribute("data-county") || "" })
+        })
+          .then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) { return { status: res.status, data: data }; });
+          })
+          .then(function (r) {
+            if (r.data && r.data.ok === true) {
+              input.value = "";
+              form.style.display = "none";
+              done.textContent = r.data.already
+                ? "You're already on the list — you're all set."
+                : "You're in! Your first digest arrives with the next weekly issue.";
+              done.classList.add("show");
+            } else if (r.status === 400) {
+              done.textContent = "That email doesn't look right — check it and try again.";
+              done.classList.add("show");
+            } else {
+              done.textContent = "Something went wrong on our side — please try again in a minute.";
+              done.classList.add("show");
+            }
+          })
+          .catch(function () {
+            done.textContent = "Something went wrong on our side — please try again in a minute.";
+            done.classList.add("show");
+          })
+          .then(function () {
+            if (btn) { btn.disabled = false; btn.textContent = "Join the digest"; }
+          });
+      });
+    })();
+    </script>
+
 
   </div>
 </main>
