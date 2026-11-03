@@ -67,6 +67,10 @@ TRADE_LABELS = {
     # Fort Worth: backflow-prevention permits are the city's own distinct
     # permit family (Plumbing Backflow, 7,624 window permits).
     "backflow": "Backflow",
+    # DeKalb: fire-marshal special work (hood-suppression, life-safety,
+    # and fire reviews) is the county's own distinct permit family
+    # (Fire Marshal Special Work type, 406 window permits).
+    "fire-marshal": "Fire Marshal",
 }
 
 CFG = {
@@ -159,6 +163,44 @@ CFG = {
                      'figure in it sits on an occupant-load placard, not a construction permit — '
                      'so this report publishes permit counts, not a dollar total that would '
                      'misstate the work.</p>'),
+    },
+    "ga/dekalb": {
+        "registry": "dekalb-ga",
+        "state_name": "Georgia", "state_abbr": "GA",
+        "county_name": "DeKalb County", "crumb_county": "DeKalb County, Georgia",
+        "h1": "Building Permits in DeKalb County, Georgia",
+        "city": "Decatur",
+        "source_short": "DeKalb County",
+        "source_line": "DeKalb County GIS — building permit applications (Hansen register)",
+        "creator": "DeKalb County",
+        "cite_place": "DeKalb County",
+        "noun": "building permits", "noun_singular": "building permit",
+        # DeKalb's declaredValuation failed validation on the full
+        # window (registry field_map.valuation — one project's declared
+        # value restated across its separate permits, the largest
+        # figures on non-construction permits, $0.01 placeholders):
+        # the normalizer carries no valuation at all, so the county
+        # runs counts-only by construction.
+        "show_valuation": False, "show_category": False,
+        "window_start": "2025-11-02",
+        "lede_hub": ("Every building permit issued through DeKalb County's permitting "
+                     "system — counted and sorted by trade and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits recorded in '
+                     '<strong>DeKalb County\'s permitting system</strong> — the county issues '
+                     'through it for unincorporated DeKalb County, and the register also '
+                     'carries the county\'s permit reviews for several incorporated cities '
+                     'it serves. DeKalb cities that run their own permitting systems are not '
+                     'in this feed, so totals here are DeKalb County system totals — labeled '
+                     'as such, never blended. Three facts about the county\'s data shape the '
+                     'figures. The register lists some permits more than once — exact mirror '
+                     'copies of the same application — so each application is counted '
+                     '<strong>once</strong>, by its application number. Its '
+                     '"Owner Change Only" records are changes of record that authorize no '
+                     'work, and they are not counted as permits. And the register\'s declared '
+                     'project-value field repeats one project\'s figure across its separate '
+                     'permits — the same large figure stands on a new-construction permit and '
+                     'on a plumbing permit for one address — so this report publishes permit '
+                     'counts, not a dollar total that would misstate the work.</p>'),
     },
     "pa/philadelphia": {
         "registry": "philadelphia-pa",

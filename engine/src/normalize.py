@@ -7,7 +7,8 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 import re
 
 from trades import (classify_boston_trade, classify_br_trade,
-                    classify_cincinnati_trade, classify_fort_worth_trade,
+                    classify_cincinnati_trade, classify_dekalb_trade,
+                    classify_fort_worth_trade,
                     classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
                     classify_raleigh_trade, classify_sa_trade,
@@ -1260,6 +1261,117 @@ def normalize_pittsburgh(raw, reg):
     }
 
 
+import re as _re_dk
+
+# DeKalb-area postal cities the county's free-text `location` field names
+# before "GA <zip>" — the only place the feed states a property's city or
+# ZIP (see _dekalb_city_zip). Matched as whole words, longest first.
+_DEKALB_CITIES = sorted(
+    ["Stone Mountain", "Avondale Estates", "Belvedere Park", "Gresham Park",
+     "Pine Lake", "Scottdale", "Panthersville", "Decatur", "Atlanta",
+     "Lithonia", "Clarkston", "Tucker", "Stonecrest", "Chamblee",
+     "Doraville", "Brookhaven", "Ellenwood", "Dunwoody", "Conley", "Redan"],
+    key=len, reverse=True)
+
+
+def _dekalb_city_zip(location):
+    """DeKalb's `location` is one free-text field ('3774 Lavista Rd
+    Suite 101 Tucker GA 30084', sometimes a project note, often empty —
+    present on only ~20% of window records). Returns (city, zip): the
+    ZIP is the 5-digit group after 'GA' when present; the city is a
+    known DeKalb-area postal city named immediately before that 'GA
+    <zip>' group, else None. Anything else in the field (project
+    notes, occupant text) is never carried — the address itself comes
+    from locationLine1, and city/ZIP stay NULL where the source does
+    not state them in this parseable form (measured at build
+    2026-11-02: city on 555 of 11,999 published permits, ZIP on 564)."""
+    s = _clean(location)
+    if not s:
+        return None, None
+    m = _re_dk.search(r"\bGA\s+(\d{5})(?:-\d{4})?\b", s)
+    if not m:
+        return None, None
+    zipc = m.group(1)
+    head = s[:m.start()].rstrip(" ,")
+    for city in _DEKALB_CITIES:
+        if _re_dk.search(rf"\b{_re_dk.escape(city)}\s*$", head, _re_dk.IGNORECASE):
+            return city, zipc
+    return None, zipc
+
+
+def normalize_dekalb(raw, reg):
+    """One collapsed DeKalb County permit -> standard record dict.
+
+    Input is NOT a raw feed row: the pipeline's collapse step (registry
+    collapse_events, key = applicationNumber) has already merged the
+    permit's mirror-duplicate rows into one dict — the register's
+    grain is one row per permit application plus exact mirror copies
+    (trailing-12-month window measured 2026-11-02: 12,783 published-
+    population rows = 11,998 applications; the 789 multi-row groups
+    disagree on NONE of issued/application dates, address, status,
+    work type, occupancy, valuation, or scope — re-asserted by the
+    collapse on each run). Population (registry pull_where_extra):
+    'Owner Change Only' records (D-OWNF — a change of record that
+    authorizes no work; 112 window applications) are excluded at
+    pull, the San Antonio / Pittsburgh family-exclusion treatment.
+    Privacy: the pull is column-restricted by the registry
+    pull_select — the register's primaryContact* fields (the contact's
+    name, email, phone, and ids — person data) and applicationName
+    (which carries person surnames, e.g. 'Phillips Residence') are
+    never requested from the API at all. The register publishes no
+    contractor/business field, so contractor stays NULL, never
+    inferred (the Boston treatment). The free-text `location` field
+    is used only to parse a stated city/ZIP (see _dekalb_city_zip);
+    the address is locationLine1, published on every window record.
+    Valuation: declaredValuation FAILED validation on the full window
+    (registry field_map.valuation — the project's declared value is
+    restated across its separate permits, and the largest figures sit
+    on non-construction permits), so valuation stays NULL and DeKalb
+    runs counts-only (the Miami-Dade treatment; the raw field stays
+    in the vault, unpublished). Category: OccupancyTypeDescription
+    is a building occupancy class (Single Family Detached, Business,
+    Apartment...), not a permit residential/commercial class — NULL
+    (the Boston treatment). Dates arrive as ArcGIS epoch
+    milliseconds; on 230 window permits the source's application
+    timestamp postdates its issue timestamp (a re-issuance artifact),
+    mirrored as reported.
+    """
+    sid = _clean(raw.get("applicationNumber"))
+    if not sid:
+        return None
+    address = _clean(raw.get("locationLine1"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    city, zipc = _dekalb_city_zip(raw.get("location"))
+    status_src = _clean(raw.get("status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("WorkTypeDescription")),
+        "trade": classify_dekalb_trade(raw.get("workType"),
+                                       raw.get("WorkTypeDescription")),
+        "category": None,  # occupancy class is not a permit category (above)
+        "project_description": _clean(raw.get("comments")),
+        "valuation": None,  # field failed validation; counts-only (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": _epoch_ms_date(raw.get("applicationDateTime")),
+        "issue_date": _epoch_ms_date(raw.get("issuedDateTime")),
+        "source_updated_date": None,  # layer publishes no per-row stamp
+        "contractor_name": None,  # no business field exists; contacts never pulled
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1279,5 +1391,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "miami-dade-fl": normalize_miami,
                "orlando-orange-fl": normalize_orlando,
                "hillsborough-fl": normalize_hillsborough,
-               "pittsburgh-allegheny-pa": normalize_pittsburgh}
+               "pittsburgh-allegheny-pa": normalize_pittsburgh,
+               "dekalb-ga": normalize_dekalb}
 

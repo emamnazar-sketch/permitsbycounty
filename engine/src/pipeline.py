@@ -172,7 +172,7 @@ def main():
     ap.add_argument("--field", default="application_start_date",
                     choices=["application_start_date", "applieddate", "issue_date", "issued_date",
                              "issueddate", "permitissuedate", "DATE ISSUED", "File_Date",
-                             "issue_permit_date", "ISSUED_DATE"],
+                             "issue_permit_date", "ISSUED_DATE", "issuedDateTime"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -205,8 +205,9 @@ def main():
         # ArcGIS registries stamp freshness from the layer's own
         # editingInfo.dataLastEditDate — see arcgis.py.
         ds_name = reg["dataset_id"]
-        updated_dt, _layer_name = arcgis.dataset_updated_at(reg["api_base"],
-                                                            reg["arcgis_layer"])
+        updated_dt, _layer_name = arcgis.dataset_updated_at(
+            reg["api_base"], reg["arcgis_layer"],
+            freshness_stamp_field=reg.get("freshness_stamp_field"))
     else:
         updated_epoch, ds_name = socrata.dataset_updated_at(domain, reg["dataset_id"])
         updated_dt = datetime.fromtimestamp(updated_epoch, timezone.utc)
@@ -341,7 +342,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date", "issue_permit_date", "ISSUED_DATE"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date", "issue_permit_date", "ISSUED_DATE", "issuedDateTime"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

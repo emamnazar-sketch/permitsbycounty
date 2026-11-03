@@ -836,3 +836,69 @@ def classify_pittsburgh_trade(permit_type="", work_type=""):
         if w == "new construction":
             return "new-construction"
     return "general"
+
+
+def classify_dekalb_trade(work_type="", work_type_description=""):
+    """DeKalb County (ArcGIS Hansen Building Applications) trade
+    classification.
+
+    The county names its work families in WorkTypeDescription, so —
+    following the Fort Worth / Cincinnati discipline — classification
+    starts from the source's own naming and never mines scope text.
+    Three measured refinements, each from the full-window audit pull
+    (2026-11-02, 11,998 published permits):
+
+    * The mechanical family's two combination codes (M-R+ Residential
+      General Combination, M-C+ Commercial General Combination) read
+      "general" in their descriptions, but every sampled M-R+ record's
+      scope is HVAC work ("Residential HVAC New Construction") and the
+      M- prefix is the county's mechanical family (M-RAC air
+      conditioning, M-RHT heating, M-CAC, M-VENT, M-HOOD) — so the two
+      combination codes classify as hvac.
+    * "Fats Oil Grease" (W-FOG) is a watershed compliance review tied
+      to business licensing (its records' own text: "REVIEW FOR FOG",
+      "needed to complete a business license"), not plumbing
+      construction — it stays general, not plumbing.
+    * "Fire Marshal Special Work type" (F-FMO: hood-suppression,
+      life-safety, and fire reviews for the county and its partner
+      cities) is the county's own distinct family and gets its own
+      trade, `fire-marshal` (the Boston gas / San Antonio foundation
+      precedent), rather than being folded into fire-protection,
+      which is reserved for sprinkler/suppression installation work.
+
+    Simulated on the full window audit pull before build (2026-11-02;
+    production must reproduce it exactly): electrical 3,340 · hvac
+    2,592 · general 2,700 · plumbing 1,757 · new-construction 771 ·
+    fire-marshal 406 · demolition 123 · fire-protection 118 ·
+    fire-alarm 98 · gas 90 · signage 3. Deterministic; first match
+    wins; kept separate so other counties cannot be disturbed.
+    """
+    code = (work_type or "").strip().upper()
+    d = (work_type_description or "").strip()
+    if d == "New Construction":
+        return "new-construction"
+    if d == "Demolition":
+        return "demolition"
+    if d in ("Residential Air Conditioning", "Commercial Air Conditioning",
+             "Residential Heating System", "Commercial Heating System",
+             "Venting System", "Commercial Hood") or code in ("M-R+", "M-C+"):
+        return "hvac"
+    if d in ("Fire Sprinkler System", "Kitchen Fire Suppression",
+             "Commercial Clean Agent Fire"):
+        return "fire-protection"
+    if d == "Electrical Fire Alarm":
+        return "fire-alarm"
+    if d == "Fire Marshal Special Work type":
+        return "fire-marshal"
+    if d == "Electrical Permit for Signs":
+        return "signage"
+    if d in ("Plumbing Gas Line", "Residential Gas Line",
+             "Commercial Gas Line"):
+        return "gas"
+    if d.startswith("Plumbing") or d in ("General Combined Plumbing",
+                                         "Back Flow Preventer Valve",
+                                         "Stand Alone Sewer Tap"):
+        return "plumbing"
+    if d.startswith("Electrical") or d == "Temporary Power":
+        return "electrical"
+    return "general"
