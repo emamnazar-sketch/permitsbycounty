@@ -8,6 +8,7 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_dekalb_trade,
+                    classify_detroit_trade,
                     classify_fort_worth_trade,
                     classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
@@ -1372,6 +1373,112 @@ def normalize_dekalb(raw, reg):
     }
 
 
+def _detroit_value(v):
+    n = _num(v)
+    return n if (n is not None and n >= 0) else None
+
+
+def _detroit_desc(v):
+    s = _clean(v)
+    if s:
+        s = " ".join(s.split())
+    return s
+
+
+def _normalize_detroit(raw, reg, layer):
+    """Shared Detroit core (see normalize_detroit_building)."""
+    sid = _clean(raw.get("record_id"))
+    if not sid:
+        return None
+    contractor = None
+    if layer == "trades":
+        contractor = _clean(raw.get("contact_business_name"))
+        if contractor and contractor.isupper():
+            contractor = _title(contractor)
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": _clean(raw.get("address")),
+        "city": "Detroit",  # issuing jurisdiction's seat; mirrors Austin's default
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zip_code")),
+        "permit_type": _clean(raw.get("permit_type")),
+        "trade": classify_detroit_trade(raw.get("permit_type"),
+                                        raw.get("work_description")),
+        "category": None,  # no honest permit class exists (see building docstring)
+        "project_description": _detroit_desc(raw.get("work_description")),
+        # Values publish on building permits only (Fort Worth treatment):
+        # the building register's estimated contractor cost passed
+        # validation; the trades register publishes no cost field at all.
+        # A negative stated cost is not a plausible value: exactly one
+        # window permit (RES2025-04784, an alteration at 4400 Chalmers
+        # St) states -$1,693 — an applicant sign typo — so that permit's
+        # value is excluded (NULL) and the permit itself counts, the
+        # SOP section 5 "exclude bad records" remedy applied to the bad
+        # FIELD; the first backfill held the record at gate 3 before
+        # this mapping was set (see the building registry).
+        "valuation": (_detroit_value(raw.get("amt_estimated_contractor_cost"))
+                      if layer == "building" else None),
+        # Both registers are issued-permits registers (every record
+        # carries an issue date; neither publishes a status field), so
+        # status is "issued" by the registers' own definition and
+        # status_source stays NULL (the Baton Rouge treatment).
+        "status": "issued",
+        "status_source": None,
+        "application_date": (_date(raw.get("submitted_date"))
+                             if layer == "building" else None),
+        "issue_date": _date(raw.get("issued_date")),
+        "source_updated_date": None,  # layer publishes no per-row stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
+def normalize_detroit_building(raw, reg):
+    """One raw Detroit BSEED building-register row -> standard record.
+
+    Wayne County's report is built from TWO City of Detroit BSEED
+    registers (building + trades), each with its own registry; both
+    load into the same county (county_slug mi/wayne), and their
+    record_id families are disjoint (building RES-/BLD-; trades
+    MEC-/PLM-/ELE-/FAP-/ELV-/BPV-/GTP-; measured overlap in the
+    trailing-12-month window: 0). Identity: one row per permit —
+    window rows = distinct record_id exactly (6,091 = 6,091, measured
+    2026-11-04 on repeated stability-checked reads) — no collapsing.
+    Privacy: the building register publishes no name fields at all;
+    contractor stays NULL. Valuation: amt_estimated_contractor_cost
+    (the applicant's estimated cost of the work — NOT amt_permit_cost,
+    which is the city's permit fee and is never carried as a value)
+    passed validation on the full window (registry
+    field_map.valuation) and is stored/published as reported, on
+    building permits only. Category: the register's use fields are a
+    many-valued building-use vocabulary and its RES-/BLD- record
+    series both carry dwellings, so no honest residential/commercial
+    class exists — NULL (the Boston treatment). Dates are ArcGIS
+    DateOnly strings.
+    """
+    return _normalize_detroit(raw, reg, "building")
+
+
+def normalize_detroit_trades(raw, reg):
+    """One raw Detroit BSEED trades-register row -> standard record.
+
+    Identity as in normalize_detroit_building (15,732 window rows =
+    15,732 distinct record_id). Privacy by construction: the pull is
+    column-restricted by the registry pull_select — owner_name
+    (property owners, incl. persons) and contact_name (the contact
+    person) and the contact/contractor address fields are never
+    requested from the API at all. The only name carried is
+    contact_business_name, the permit's published business of record
+    (13,279 of 15,732 window permits; NULL where unpublished, never
+    inferred). The trades register publishes no cost field and no
+    application date — both stay NULL by construction.
+    """
+    return _normalize_detroit(raw, reg, "trades")
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1392,5 +1499,7 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "orlando-orange-fl": normalize_orlando,
                "hillsborough-fl": normalize_hillsborough,
                "pittsburgh-allegheny-pa": normalize_pittsburgh,
-               "dekalb-ga": normalize_dekalb}
+               "dekalb-ga": normalize_dekalb,
+               "detroit-wayne-mi-building": normalize_detroit_building,
+               "detroit-wayne-mi-trades": normalize_detroit_trades}
 

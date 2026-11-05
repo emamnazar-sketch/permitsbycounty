@@ -202,6 +202,42 @@ CFG = {
                      'on a plumbing permit for one address — so this report publishes permit '
                      'counts, not a dollar total that would misstate the work.</p>'),
     },
+    "mi/wayne": {
+        "registry": "detroit-wayne-mi-building",
+        "state_name": "Michigan", "state_abbr": "MI",
+        "county_name": "Wayne County", "crumb_county": "Wayne County, Michigan",
+        "h1": "Building Permits in Wayne County, Michigan",
+        "city": "Detroit",
+        "source_short": "City of Detroit",
+        "source_line": "City of Detroit open data — building and trades permits issued by BSEED (Buildings, Safety Engineering and Environmental Department)",
+        "creator": "City of Detroit",
+        "cite_place": "Wayne County (Detroit)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Detroit's building-register estimated contractor cost passed
+        # validation at permit level (registry field_map.valuation —
+        # stated on 6,090 of 6,091 building permits, 0.5% at $1 or less,
+        # DB sum reproduces the source-side $2,650,410,854); the trades
+        # register publishes no cost field at all, so values publish on
+        # building permits only (the Fort Worth treatment).
+        "show_valuation": True, "show_category": False,
+        "values_on_building_only": True,
+        "window_start": "2025-11-04",
+        "lede_hub": ("Every building and trade permit issued by the City of Detroit — "
+                     "counted, valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers permits issued by the '
+                     '<strong>City of Detroit</strong> (Buildings, Safety Engineering and '
+                     'Environmental Department — BSEED). Wayne County\'s other municipalities '
+                     'issue their own permits through their own systems and are not in this '
+                     'feed, so totals here are Detroit totals — labeled as such, never blended. '
+                     'Three facts about the city\'s data shape the figures. Detroit publishes '
+                     'two registers — building permits and trade permits — and this report '
+                     'combines both, counting each permit <strong>once</strong> by its permit '
+                     'number. BSEED demolition permits are published in a separate city '
+                     'dataset and are <strong>not</strong> in this report. And the city states '
+                     'an estimated cost of work on its building permits but publishes no cost '
+                     'field on its trade permits, so the reported value below is the building '
+                     'permits\' stated total.</p>'),
+    },
     "pa/philadelphia": {
         "registry": "philadelphia-pa",
         "state_name": "Pennsylvania", "state_abbr": "PA",

@@ -902,3 +902,52 @@ def classify_dekalb_trade(work_type="", work_type_description=""):
     if d.startswith("Electrical") or d == "Temporary Power":
         return "electrical"
     return "general"
+
+
+def classify_detroit_trade(permit_type="", work_description=""):
+    """Detroit / Wayne County (BSEED building + trades registers) trade
+    classification.
+
+    The city names its permit families in permit_type, so — following
+    the Fort Worth / Cincinnati discipline — classification is
+    exact-match on the source's own families, with one measured
+    description refinement:
+
+    * The trades register's families map directly: Mechanical Permit
+      and Boiler PV Permit (boiler/pressure-vessel work is heating
+      plant) -> hvac; Plumbing Permit -> plumbing; Fire Alarm Permit
+      -> fire-alarm; Elevator Permit -> elevator; Generator Permit ->
+      generator (the city's own family, the Baton Rouge precedent).
+    * Electrical Permit -> electrical, EXCEPT permits whose own work
+      description names solar photovoltaic work (100 in the audit
+      window) -> solar (the Miami treatment: solar files as electrical
+      in this register, and the description names it unambiguously).
+    * The building register's New / New Revision / Foundation Only
+      types -> new-construction; every other building type (Alteration
+      and its revisions, rehab, change of use/occupancy, additions,
+      fire repair) names no single licensed trade -> general.
+
+    Simulated on the full-window audit pulls before build
+    (2026-11-04; production must reproduce it): general 5,898 ·
+    hvac 5,490 · plumbing 5,203 · electrical 4,326 · fire-alarm 270 ·
+    elevator 269 · new-construction 193 · solar 100 · generator 74.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    t = (permit_type or "").strip()
+    w = (work_description or "").upper()
+    if t == "Electrical Permit":
+        return "solar" if "SOLAR" in w else "electrical"
+    if t in ("Mechanical Permit", "Boiler PV Permit"):
+        return "hvac"
+    if t == "Plumbing Permit":
+        return "plumbing"
+    if t == "Fire Alarm Permit":
+        return "fire-alarm"
+    if t == "Elevator Permit":
+        return "elevator"
+    if t == "Generator Permit":
+        return "generator"
+    if t in ("New", "New Revision", "Foundation Only"):
+        return "new-construction"
+    return "general"
