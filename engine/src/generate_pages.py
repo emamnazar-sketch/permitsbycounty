@@ -71,6 +71,9 @@ TRADE_LABELS = {
     # and fire reviews) is the county's own distinct permit family
     # (Fire Marshal Special Work type, 406 window permits).
     "fire-marshal": "Fire Marshal",
+    # Los Angeles: swimming-pool/spa permits are LADBS's own permit
+    # family (Swimming-Pool/Spa type, 2,356 window permits).
+    "pool": "Pool",
 }
 
 CFG = {
@@ -100,6 +103,42 @@ CFG = {
                      'the raw feed. We count each permit <strong>once</strong>, at the address the '
                      'department flags as primary — counts on this page are permits, never raw '
                      'feed rows.</p>'),
+    },
+    "ca/los-angeles": {
+        "registry": "los-angeles-ca",
+        "state_name": "California", "state_abbr": "CA",
+        "county_name": "Los Angeles County", "crumb_county": "Los Angeles County, California",
+        "h1": "Building Permits in Los Angeles County, California",
+        "city": "Los Angeles",
+        "source_short": "City of Los Angeles",
+        "source_line": "City of Los Angeles open data — building permits issued by the Department of Building and Safety (LADBS)",
+        "creator": "City of Los Angeles",
+        "cite_place": "Los Angeles County (Los Angeles)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # LA's valuation passed validation on the full window (registry
+        # field_map.valuation — 94% stated above $1, zero non-round
+        # $1M+ values repeated across addresses, DB sum verified
+        # against the source-side total): values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is the City of Los Angeles's own building class for each "
+                          "permit (1 or 2 Family Dwelling and Apartment count as Residential; "
+                          "the grading classes state no building class)."),
+        "window_start": "2025-11-06",
+        "lede_hub": ("Every building permit issued by the City of Los Angeles — counted, "
+                     "valued, and sorted by trade. Free, and updated weekly."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by '
+                     'the <strong>City of Los Angeles</strong> (Department of Building and '
+                     'Safety). Los Angeles County\'s other cities issue their own permits '
+                     'through their own systems and are not in this feed, so totals here are '
+                     'City of Los Angeles totals — labeled as such, never blended. Two facts '
+                     'about the city\'s data shape the figures. This dataset is the '
+                     'department\'s <strong>building</strong> permits: LADBS publishes its '
+                     'electrical and mechanical permits in separate datasets, so licensed-trade '
+                     'figures here are read only from each building permit\'s own type and '
+                     'scope text, and only where the signal is unambiguous (re-roof permits '
+                     'are the clear case). And the city reloads this dataset in a weekly '
+                     'batch, so the freshest permits can run about a week behind the '
+                     'calendar — the stamps above show the source\'s own dates.</p>'),
     },
     "wa/king": {
         "registry": "seattle-king-wa",

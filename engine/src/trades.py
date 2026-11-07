@@ -951,3 +951,64 @@ def classify_detroit_trade(permit_type="", work_description=""):
     if t in ("New", "New Revision", "Foundation Only"):
         return "new-construction"
     return "general"
+
+
+_LA_ROOF = ("re-roof", "reroof", "roofing", "roof replacement",
+            "new roof", "roof cover")
+_LA_SOLAR = ("solar panel", "solar pv", "photovoltaic", "solar array",
+             "solar system")
+
+
+def classify_la_trade(permit_type="", description=""):
+    """Los Angeles (LADBS building permits, Socrata pi9x-tg5x) trade
+    classification.
+
+    This feed is LADBS's BUILDING permits only (permit_group is
+    'Building' on 100% of rows; the city's electrical and mechanical
+    permits are separate datasets), so classification follows the
+    Raleigh discipline — the source's own permit families first, then
+    only the description signals that measured unambiguous:
+
+    * permit_type families map directly: Bldg-Demolition and
+      Nonbldg-Demolition -> demolition; Sign -> signage;
+      Swimming-Pool/Spa -> pool (the department's own permit family —
+      the Boston gas / San Antonio foundation treatment: a source's
+      own distinct family gets its own trade); Bldg-New and
+      Nonbldg-New -> new-construction.
+    * then the work description, narrow phrases only: solar phrases
+      ('solar panel', 'solar pv', 'photovoltaic', ...) -> solar;
+      re-roof phrases -> roofing. LADBS's express-permit stock texts
+      make the re-roof family unambiguous (the standard 'Re-roof with
+      Class A or B roof covering material...' text alone is most of
+      the roofing count).
+    * wide keyword mining was MEASURED AND REJECTED (2026-11-06 sim):
+      remodel descriptions recite 'Include HVAC, Plumbing, Electrical'
+      as boilerplate and ordinary house permits carry 'NFPA-13D FIRE
+      SPRINKLERS REQUIRED THROUGHOUT', so hvac/plumbing/electrical/
+      fire mining produced false positives on general remodels. Those
+      permits stay in 'general' — and the county's electrical and
+      mechanical permits live in separate LADBS datasets in any case.
+    * everything else (alter/repair, additions, grading, retaining
+      walls, ADU and remodel work) -> general.
+
+    Simulated on the full window pull before build (2026-11-06;
+    production must reproduce it): general 37,794 · roofing 14,050 ·
+    new-construction 6,570 · pool 2,356 · demolition 1,576 ·
+    signage 1,322 · solar 110. Deterministic; first match wins; kept
+    separate so other counties cannot be disturbed.
+    """
+    pt = (permit_type or "").strip()
+    d = (description or "").lower()
+    if "demolition" in pt.lower():
+        return "demolition"
+    if pt == "Sign":
+        return "signage"
+    if pt == "Swimming-Pool/Spa":
+        return "pool"
+    if pt in ("Bldg-New", "Nonbldg-New"):
+        return "new-construction"
+    if _contains(d, _LA_SOLAR):
+        return "solar"
+    if _contains(d, _LA_ROOF):
+        return "roofing"
+    return "general"

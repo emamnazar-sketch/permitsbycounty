@@ -8,7 +8,7 @@ import re
 
 from trades import (classify_boston_trade, classify_br_trade,
                     classify_cincinnati_trade, classify_dekalb_trade,
-                    classify_detroit_trade,
+                    classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
                     classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
@@ -1479,6 +1479,75 @@ def normalize_detroit_trades(raw, reg):
     return _normalize_detroit(raw, reg, "trades")
 
 
+def normalize_la(raw, reg):
+    """One raw Los Angeles (LADBS) row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the permit number is exactly
+    unique in the trailing-12-month window (63,778 rows = 63,778
+    distinct permit_nbr, measured 2026-11-06 on a full audit pull) —
+    source_record_id = permit_nbr, no collapsing. The dataset is
+    LADBS's BUILDING permits only (permit_group 'Building' on 100% of
+    rows; electrical and mechanical permits are separate city
+    datasets). Privacy: the dataset's 39-column schema publishes no
+    contractor, applicant, or owner name field at all, so
+    contractor_name stays NULL, never inferred (the SF treatment) —
+    and the pull is additionally column-restricted by the registry
+    pull_select. Valuation: the source's text valuation column parses
+    as a plain dollar figure on every window row (0 off-pattern in the
+    audit) and passed validation on the full window (registry
+    field_map.valuation) — stored and published as reported.
+    Category: the city's own building class (permit_sub_type):
+    '1 or 2 Family Dwelling' and 'Apartment' are residential,
+    'Commercial' is commercial, and the grading classes ('Onsite',
+    'Offsite') state no building class and stay NULL.
+    """
+    sid = _clean(raw.get("permit_nbr"))
+    if not sid:
+        return None
+    address = _clean(raw.get("primary_address"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    zipc = _clean(raw.get("zip_code"))
+    if zipc and len(zipc) > 5 and zipc[:5].isdigit():
+        zipc = zipc[:5]
+    sub = (_clean(raw.get("permit_sub_type")) or "")
+    if sub in ("1 or 2 Family Dwelling", "Apartment"):
+        category = "residential"
+    elif sub == "Commercial":
+        category = "commercial"
+    else:
+        category = None
+    status_src = _clean(raw.get("status_desc"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    desc = _clean(raw.get("work_desc"))
+    if desc:
+        desc = " ".join(desc.split())
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Los Angeles",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("permit_type")),
+        "trade": classify_la_trade(raw.get("permit_type"), raw.get("work_desc")),
+        "category": category,
+        "project_description": desc,
+        "valuation": _num(raw.get("valuation")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _date(raw.get("submitted_date")),
+        "issue_date": _date(raw.get("issue_date")),
+        "source_updated_date": None,  # per-row refresh stamp not carried
+        "contractor_name": None,  # dataset publishes no name field at all
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1501,5 +1570,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "pittsburgh-allegheny-pa": normalize_pittsburgh,
                "dekalb-ga": normalize_dekalb,
                "detroit-wayne-mi-building": normalize_detroit_building,
-               "detroit-wayne-mi-trades": normalize_detroit_trades}
+               "detroit-wayne-mi-trades": normalize_detroit_trades,
+               "los-angeles-ca": normalize_la}
 
