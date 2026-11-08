@@ -28,6 +28,7 @@ import html
 import json
 import os
 import sqlite3
+import statistics
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -1011,6 +1012,85 @@ DIGEST_BLOCK = """
 """
 
 
+# Trade-page digest signup (Amam's order, 2026-11-07 — the national trade
+# pages end with the digest join for their trade). Same component and
+# endpoint as DIGEST_BLOCK, but the form posts {email, county:"", trade}
+# so the signup lands pre-segmented for that trade's digest (the API's
+# subscribers table carries a trade column for exactly this; county and
+# homepage forms send no trade and are unchanged).
+TRADE_DIGEST_BLOCK = """
+    <h2>Get the {TRADE_LABEL} digest</h2>
+    <p>{DIGEST_LINE} Sign up right here — no spam, unsubscribe anytime.</p>
+    <style>
+    .digest-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin:6px 0 10px}
+    .digest-form{display:flex;gap:10px;flex-wrap:wrap}
+    .digest-form input[type=email]{flex:1 1 260px;font:inherit;font-size:16.5px;padding:12px 14px;border:1px solid var(--border);border-radius:7px;background:#fff;color:#000}
+    .digest-form button{font:inherit;font-weight:700;font-size:16.5px;background:var(--teal);color:#fff;border:0;border-radius:7px;padding:12px 22px;cursor:pointer}
+    .digest-form button:hover{background:var(--teal-dark)}
+    .digest-done{display:none;font-size:16px;margin-top:10px}
+    .digest-done.show{display:block}
+    @media (max-width:760px){.digest-form button{width:100%}}
+    </style>
+    <div class="digest-box">
+    <form class="digest-form" id="digestForm" data-trade="{TRADE_VALUE}" novalidate>
+      <input type="email" id="digestEmail" placeholder="Your email address" aria-label="Your email address" autocomplete="email" />
+      <button type="submit">Join the digest</button>
+    </form>
+    <div class="digest-done" id="digestDone" role="status"></div>
+    </div>
+    <script>
+    (function () {
+      var form = document.getElementById("digestForm");
+      var input = document.getElementById("digestEmail");
+      var done = document.getElementById("digestDone");
+      if (!form || !input || !done) return;
+      var btn = form.querySelector('button[type="submit"]');
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var email = input.value.trim();
+        if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) {
+          done.textContent = "That email doesn't look right — check it and try again.";
+          done.classList.add("show");
+          return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = "Joining…"; }
+        fetch("/api/digest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, county: "", trade: form.getAttribute("data-trade") || "" })
+        })
+          .then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) { return { status: res.status, data: data }; });
+          })
+          .then(function (r) {
+            if (r.data && r.data.ok === true) {
+              input.value = "";
+              form.style.display = "none";
+              done.textContent = r.data.already
+                ? "You're already on the list — you're all set."
+                : "You're in! Your first digest arrives with the next weekly issue.";
+              done.classList.add("show");
+            } else if (r.status === 400) {
+              done.textContent = "That email doesn't look right — check it and try again.";
+              done.classList.add("show");
+            } else {
+              done.textContent = "Something went wrong on our side — please try again in a minute.";
+              done.classList.add("show");
+            }
+          })
+          .catch(function () {
+            done.textContent = "Something went wrong on our side — please try again in a minute.";
+            done.classList.add("show");
+          })
+          .then(function () {
+            if (btn) { btn.disabled = false; btn.textContent = "Join the digest"; }
+          });
+      });
+    })();
+    </script>
+"""
+
+
 def esc(s):
     return html.escape(str(s if s is not None else ""), quote=True)
 
@@ -1113,7 +1193,7 @@ class Ctx:
         return ""
 
 
-def page_shell(title, description, canonical, crumbs, ld_extra, body):
+def page_shell(title, description, canonical, crumbs, ld_extra, body, head_extra=""):
     crumbs_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList",
                  "itemListElement": [{"@type": "ListItem", "position": i + 1,
                                       "name": n, "item": u} for i, (n, u) in enumerate(crumbs)]}
@@ -1128,7 +1208,7 @@ def page_shell(title, description, canonical, crumbs, ld_extra, body):
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}" />
 <link rel="canonical" href="{canonical}" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
+{head_extra}<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>{CSS}</style>
@@ -1619,6 +1699,501 @@ def generate(con, slug):
     print(f"hub stats: total12={total_12} cur={cur_n} last={last_n} top_trade={top_trade[0]}")
 
 
+# --- national trade pages -------------------------------------------------
+# One page per major trade (Amam's order, 2026-11-07): what that trade
+# watches in a county report — permit types, timing, project value — built
+# from the same DB figures the county reports publish, ending with the
+# digest join for that trade (TRADE_DIGEST_BLOCK). Regenerated on every
+# generator run (see main()), so the nightly refresh keeps them current
+# alongside the county pages. Counties removed under the strict-10 rule
+# (2026-10-23) never appear here; _redirects already 404s their paths.
+REMOVED_SLUGS = {"wa/king", "ma/suffolk", "la/east-baton-rouge"}
+LIVE_SLUGS = [s for s in CFG if s not in REMOVED_SLUGS]
+
+# Counties whose stated value sits on the permit itself, so per-permit
+# value figures (median, biggest projects) are honest: valued counties
+# minus the values_on_building_only pair (their trade permits state no
+# value) and minus the five NYC boroughs — DOB NOW states one cost for a
+# whole job filing, not per permit, so a trade permit there would borrow
+# the whole building's budget. NYC permits are still counted everywhere
+# counts appear.
+_NYC_SLUGS = {"ny/new-york", "ny/kings", "ny/queens", "ny/bronx", "ny/richmond"}
+VALUE_PERMIT_SLUGS = [s for s in LIVE_SLUGS
+                      if CFG[s]["show_valuation"]
+                      and not CFG[s].get("values_on_building_only")
+                      and s not in _NYC_SLUGS]
+
+TRADE_PAGES = {
+    "roofing": {
+        "path": "roofing-permits",
+        "keyword": "roofing permits",
+        "title": "Roofing Permits by County | PermitsByCounty",
+        "h1": "Roofing Permits by County",
+        "desc": ("Roofing permits across the {paged} counties with a roofing report: {total} issued "
+                 "in the last 12 months, counts by county and month, reported job values. Free."),
+        "lede": ("Roofing permits are the public record of roof work that is about to start. This page "
+                 "pulls together every roofing permit in the counties PermitsByCounty covers — re-roofs, "
+                 "roof replacements, and the roof work inside new builds — so you can see where the work "
+                 "is, how much of it there is, and what the jobs are worth in the counties that publish "
+                 "a value."),
+        "counts_h": "What counts as a roofing permit here",
+        "counts": ("Our classifier reads each permit's type and scope text. A permit lands on this page "
+                   "when it is a re-roof or a roof replacement, or when the description names roofing "
+                   "work — shingles, a tear-off, a roof on a new build. A general remodel that never "
+                   "mentions the roof stays out, even if a roofer ends up working on the job. That one "
+                   "rule keeps the count honest, and it is why reading the description still matters "
+                   "before you treat any single permit as a job."),
+        "timing_h": "A roofing permit means the work is close",
+        "timing": [
+            ("A re-roof permit is usually pulled days before the job starts, not months. A standard "
+             "roof installs in one to three days, and the whole job often runs one to four weeks — so "
+             "the newest permits are the live ones, and a re-roof permit from last month may already "
+             "be finished and gone."),
+            ("Roofing inside new construction runs the other way. The roof goes on long before anyone "
+             "moves in, so those permits are a map of work coming over the next few months, not work "
+             "you can knock on today. Storm work sits on top of both: after hard weather, watch for "
+             "the count to jump in the county that got hit."),
+        ],
+        "coverage_note": "",
+        "blog": [("How do I find roofing jobs from building permits in my county?",
+                  "/#blog/roofing-jobs-from-building-permits"),
+                 ("How can contractors find jobs from newly issued building permits?",
+                  "/#blog/find-jobs-from-newly-issued-building-permits")],
+        "faqs": [
+            ("What counts as a roofing job in a permit record?",
+             "A direct re-roof first, then a new build, then an addition or remodel where the "
+             "description names roof work. Read the description every time — a general alteration "
+             "permit with no roof scope is not a roofing job."),
+            ("How new should a roofing permit be before I work it?",
+             "Work the newest first, and work them weekly. A standard roof installs in one to three "
+             "days and the full job often runs one to four weeks, so a month-old re-roof permit may "
+             "already be finished. Check the status before you drive."),
+            ("Does a permit give me the homeowner's phone number?",
+             "Usually no. A permit normally carries the address, the work, the dates, and the "
+             "contractor of record — not a verified homeowner phone number. If a seller promises one "
+             "on every row, ask which record it came from."),
+        ],
+        "digest_line": ("One free email a week with the newest roofing permits, the biggest roofing "
+                        "projects, and the trade's county-by-county counts."),
+    },
+    "solar": {
+        "path": "solar-permits",
+        "keyword": "solar permits",
+        "title": "Solar Permits by County | PermitsByCounty",
+        "h1": "Solar Permits by County",
+        "desc": ("Solar permits across the {paged} counties with a solar report: {total} issued in "
+                 "the last 12 months, counts by county and month, reported job values. Free data."),
+        "lede": ("Solar permits record every panel install a city or county has approved. This page "
+                 "pulls together every solar permit in the counties PermitsByCounty covers, so you can "
+                 "see where solar is actually going in, how fast, and what the installs are worth in "
+                 "the counties that publish a value."),
+        "counts_h": "What counts as a solar permit here",
+        "counts": ("A permit lands on this page when its type or description names solar work — rooftop "
+                   "panels, a ground-mount array, a panel upgrade. Battery work filed inside a solar "
+                   "permit rides along with it; a battery filed on its own electrical permit shows up "
+                   "on the electrical page instead. A new build that will carry panels later is not "
+                   "counted here until the solar permit itself is filed."),
+        "timing_h": "Read a solar permit as a map, not a lead",
+        "timing": [
+            ("A solar permit usually means the job is already sold. The record often names the "
+             "installer who won it, so the permit itself is rarely an open lead. What it gives you "
+             "is the map: which neighborhoods are buying, how fast installs are moving county by "
+             "county, and which installers are busiest."),
+            ("The permit that sells solar is the new roof. A homeowner with a fresh roof has a roof "
+             "that can carry panels for decades, and the decision window runs about 30 to 60 days "
+             "after the roof work — so the <a href=\"/roofing-permits/\">roofing report</a> is this "
+             "page's closest companion."),
+        ],
+        "coverage_note": "",
+        "blog": [("How do I find solar leads from building permits?",
+                  "/#blog/solar-leads-from-building-permits"),
+                 ("How much does a solar permit cost?", "/#blog/solar-permit-cost")],
+        "faqs": [
+            ("Are solar permits themselves good leads?",
+             "Usually not as direct leads. A solar permit normally means an installer already sold "
+             "that job, and the record often names that installer. Grouped by county and installer, "
+             "solar permits still show you where solar is moving and who your competitors are."),
+            ("What is the best permit signal for solar?",
+             "A new roof permit. The homeowner has a fresh roof that can carry panels for years, and "
+             "the solar decision window runs about 30 to 60 days after the roof work. New builds and "
+             "panel upgrades come next."),
+            ("Does a permit give me the homeowner's phone number?",
+             "Usually no. A permit normally carries the address, the work, the dates, and the "
+             "contractor of record — not a verified homeowner phone number. If a seller promises one "
+             "on every row, ask which record it came from."),
+        ],
+        "digest_line": ("One free email a week with the newest solar permits, the biggest solar "
+                        "projects, and the trade's county-by-county counts."),
+    },
+    "hvac": {
+        "path": "hvac-permits",
+        "keyword": "hvac permits",
+        "title": "HVAC Permits by County | PermitsByCounty",
+        "h1": "HVAC Permits by County",
+        "desc": ("HVAC permits across the {paged} counties with an HVAC report: {total} issued in "
+                 "the last 12 months, counts by county and month, reported job values. Free data."),
+        "lede": ("HVAC permits — filed as mechanical permits in most cities — record every furnace, "
+                 "air conditioner, and duct job a city or county has approved. This page pulls "
+                 "together every HVAC permit in the counties PermitsByCounty covers, so you can see "
+                 "where the work is, when it peaks, and what the jobs are worth in the counties that "
+                 "publish a value."),
+        "counts_h": "What counts as an HVAC permit here",
+        "counts": ("A permit lands on this page when it is a mechanical permit or its scope names "
+                   "heating and cooling work — a furnace, an air conditioner, ductwork, a condensing "
+                   "unit. If you scan a county report by hand, \u201cmechanical\u201d is the word to look for: "
+                   "most cities file HVAC work under that name, not under HVAC."),
+        "timing_h": "HVAC permits run on the weather",
+        "timing": [],  # built in code: the busiest-month sentence is data-driven
+        "coverage_note": "",
+        "blog": [("How can contractors find jobs from newly issued building permits?",
+                  "/#blog/find-jobs-from-newly-issued-building-permits"),
+                 ("Who pulls the permit — the homeowner or the contractor?",
+                  "/#blog/who-pulls-the-permit-homeowner-or-contractor")],
+        "faqs": [
+            ("Why do HVAC permits say \u201cmechanical\u201d?",
+             "Most cities file heating and cooling work as mechanical permits — it is the permit "
+             "family that covers furnaces, air conditioners, and ductwork. When you scan a county "
+             "report for HVAC work, look for the mechanical count."),
+            ("How fast does an HVAC permit turn into work?",
+             "A changeout permit is pulled when the new system goes in, so the work is happening "
+             "that week. Mechanical permits inside a new build are different: they are filed with "
+             "the project and run months ahead of move-in."),
+        ],
+        "digest_line": ("One free email a week with the newest HVAC permits, the biggest mechanical "
+                        "projects, and the trade's county-by-county counts."),
+    },
+    "electrical": {
+        "path": "electrical-permits",
+        "keyword": "electrical permits",
+        "title": "Electrical Permits by County | PermitsByCounty",
+        "h1": "Electrical Permits by County",
+        "desc": ("Electrical permits across the {paged} counties with an electrical report: {total} "
+                 "in the last 12 months, county and monthly counts, reported job values. Free data."),
+        "lede": ("Electrical permits record the wiring work a city or county has approved — service "
+                 "upgrades, panel work, new circuits, chargers. This page pulls together every "
+                 "electrical permit in the counties PermitsByCounty covers, so you can see where the "
+                 "work is and what it is worth in the counties that publish a value."),
+        "counts_h": "What counts as an electrical permit here",
+        "counts": ("A permit lands on this page when it is an electrical permit or its scope names "
+                   "electrical work — a service upgrade, a panel upgrade, an EV charger. Charger "
+                   "permits count as electrical because that is what they are: a new circuit, and "
+                   "often a panel check before it."),
+        "timing_h": "Upgrades are the early signal",
+        "timing": [],  # built in code: the steady-range sentence is data-driven
+        "coverage_note": ("Two big sources do not feed this page. New York City files its electrical "
+                          "permits in a separate dataset from its building permits, and Los Angeles "
+                          "publishes its electrical permits separately too — so New York and Los "
+                          "Angeles appear in the other trade reports but not in this one. The gap is "
+                          "in the source data, not in the work: plenty of electrical work happens in "
+                          "both cities; their building-permit feeds just do not carry it."),
+        "blog": [("How much does an EV charger permit cost?", "/#blog/ev-charger-permit-cost"),
+                 ("How can contractors find jobs from newly issued building permits?",
+                  "/#blog/find-jobs-from-newly-issued-building-permits")],
+        "faqs": [
+            ("Why is New York City missing from the electrical table?",
+             "New York City files electrical permits in a separate dataset from its building "
+             "permits, and Los Angeles publishes electrical permits separately too. Those feeds "
+             "are not in this report yet, so the table covers the counties whose building-permit "
+             "feeds carry electrical work."),
+            ("What does a panel upgrade permit tell me?",
+             "A service or panel upgrade usually means the home's power needs just grew — a "
+             "remodel, an EV charger, a hot tub, or a solar install can all sit behind one. It is "
+             "one of the earliest public signs that a household is spending on its electrical "
+             "system."),
+            ("Are EV charger permits counted as electrical?",
+             "Yes. A charger permit is electrical work — a new circuit, often a panel check first — "
+             "so charger permits are counted with electrical permits here."),
+        ],
+        "digest_line": ("One free email a week with the newest electrical permits, the biggest "
+                        "electrical projects, and the trade's county-by-county counts."),
+    },
+    "plumbing": {
+        "path": "plumbing-permits",
+        "keyword": "plumbing permits",
+        "title": "Plumbing Permits by County | PermitsByCounty",
+        "h1": "Plumbing Permits by County",
+        "desc": ("Plumbing permits across the {paged} counties with a plumbing report: {total} issued "
+                 "in the last 12 months, counts by county and month, reported job values. Free."),
+        "lede": ("Plumbing permits record the pipe work a city or county has approved — water heaters, "
+                 "re-pipes, sewer lines, new builds. This page pulls together every plumbing permit "
+                 "in the counties PermitsByCounty covers, so you can see where the work is and what "
+                 "it is worth in the counties that publish a value."),
+        "counts_h": "What counts as a plumbing permit here",
+        "counts": ("A permit lands on this page when it is a plumbing permit or its scope names "
+                   "plumbing work — a water heater, a re-pipe, a sewer line, a gas line, a boiler. "
+                   "It is the biggest of the five trades on this site by permit count, and the "
+                   "steadiest: the monthly counts below barely move with the seasons."),
+        "timing_h": "Two speeds: emergencies and new builds",
+        "timing": [
+            ("Water-heater and re-pipe permits are pulled at the job. A failed water heater does "
+             "not wait a week, so those permits are this week's work, and newest-first is the only "
+             "way to read them. Sewer work is close behind — it usually starts with something "
+             "going wrong underground."),
+            ("Plumbing inside new construction runs at building speed instead: filed with the "
+             "project, roughed in months before anyone turns on a tap. A rising new-construction "
+             "count is next season's plumbing work announcing itself early."),
+        ],
+        "coverage_note": "",
+        "blog": [("How can contractors find jobs from newly issued building permits?",
+                  "/#blog/find-jobs-from-newly-issued-building-permits"),
+                 ("Who pulls the permit — the homeowner or the contractor?",
+                  "/#blog/who-pulls-the-permit-homeowner-or-contractor")],
+        "faqs": [],  # built in code: the steadiness answer is data-driven
+        "digest_line": ("One free email a week with the newest plumbing permits, the biggest "
+                        "plumbing projects, and the trade's county-by-county counts."),
+    },
+}
+
+
+def _sitemap_add(entries):
+    """Append (path, priority) entries to sitemap.xml when missing."""
+    sm_path = os.path.join(REPO, "sitemap.xml")
+    with open(sm_path) as fh:
+        sm = fh.read()
+    add = ""
+    for path, pr in entries:
+        loc = f"https://permitsbycounty.com{path}"
+        if loc not in sm:
+            add += (f"  <url>\n    <loc>{loc}</loc>\n    <lastmod>{TODAY_ISO}</lastmod>\n"
+                    f"    <priority>{pr}</priority>\n  </url>\n")
+    if add:
+        sm = sm.replace("</urlset>", add + "</urlset>")
+        with open(sm_path, "w") as fh:
+            fh.write(sm)
+
+
+def generate_trade_pages(con):
+    """National per-trade pages (/roofing-permits/ etc.) — see TRADE_PAGES."""
+    county_ids = {}
+    for slug in LIVE_SLUGS:
+        row = con.execute("SELECT id FROM counties WHERE slug=?", (slug,)).fetchone()
+        if row:
+            county_ids[slug] = row[0]
+    live_ids = list(county_ids.values())
+    id_ph = ",".join("?" * len(live_ids))
+    vp_ids = [county_ids[s] for s in VALUE_PERMIT_SLUGS if s in county_ids]
+    vp_ph = ",".join("?" * len(vp_ids))
+    written = []
+
+    for trade, tp in TRADE_PAGES.items():
+        label = TRADE_LABELS[trade]
+        # Per-county rows for this trade (last-12-month aggregates).
+        rows = []
+        total12 = 0
+        for slug in LIVE_SLUGS:
+            cid = county_ids.get(slug)
+            if cid is None:
+                continue
+            n12, v12 = con.execute(
+                "SELECT COALESCE(SUM(permit_count),0), COALESCE(SUM(total_valuation),0) "
+                "FROM monthly_aggregates WHERE county_id=? AND trade=?",
+                (cid, trade)).fetchone()
+            county_total = con.execute(
+                "SELECT COALESCE(SUM(permit_count),0) FROM monthly_aggregates "
+                "WHERE county_id=? AND trade IS NULL", (cid,)).fetchone()[0]
+            total12 += n12
+            if n12 < TRADE_PAGE_MIN:
+                continue
+            valued = CFG[slug]["show_valuation"]
+            if valued and CFG[slug].get("values_on_building_only"):
+                valued = bool(con.execute(
+                    "SELECT 1 FROM permits WHERE county_id=? AND trade=? "
+                    "AND valuation IS NOT NULL LIMIT 1", (cid, trade)).fetchone())
+            rows.append((slug, n12, v12 if valued else None, county_total))
+        rows.sort(key=lambda r: -r[1])
+        paged = len(rows)
+        top_slug, top_n = rows[0][0], rows[0][1]
+        top_name = CFG[top_slug]["county_name"]
+
+        # Monthly series across live counties.
+        series = con.execute(
+            f"SELECT year_month, SUM(permit_count) FROM monthly_aggregates "
+            f"WHERE trade=? AND county_id IN ({id_ph}) GROUP BY year_month ORDER BY year_month",
+            (trade, *live_ids)).fetchall()
+        months = [m for m, _ in series]
+        by_month = dict(series)
+        current_month, last_full_month = months[-1], months[-2]
+        full_months = months[:-1]
+        busiest_ym = max(full_months, key=lambda ym: by_month[ym])
+        lo_n = min(by_month[ym] for ym in full_months)
+        hi_n = max(by_month[ym] for ym in full_months)
+
+        # Per-permit value figures from VALUE_PERMIT_SLUGS only.
+        vals = [r[0] for r in con.execute(
+            f"SELECT valuation FROM permits WHERE trade=? AND valuation > 0 "
+            f"AND county_id IN ({vp_ph})", (trade, *vp_ids))]
+        median_val = money_full(statistics.median(vals)) if vals else "—"
+        biggest = con.execute(
+            f"SELECT p.address, p.permit_number, p.valuation, p.issue_date, c.slug "
+            f"FROM permits p JOIN counties c ON c.id=p.county_id "
+            f"WHERE p.trade=? AND p.valuation IS NOT NULL AND p.county_id IN ({vp_ph}) "
+            f"ORDER BY p.valuation DESC LIMIT 6", (trade, *vp_ids)).fetchall()
+
+        # Data-driven timing paragraphs where the copy depends on figures.
+        timing = list(tp["timing"])
+        if trade == "hvac":
+            timing = [
+                ("A changeout permit is pulled when the new system goes in, so the work is "
+                 "happening that week — newest first is the only way to read this trade. Volume "
+                 "follows the weather, and the busiest month in the last year was "
+                 f"{month_label(busiest_ym)} with {by_month[busiest_ym]:,} HVAC permits across "
+                 "the covered counties."),
+                ("Mechanical permits inside new construction are the slow lane. They are filed "
+                 "with the project and run months ahead of move-in, so a building boom shows up "
+                 "here long before the systems are ever switched on."),
+            ]
+        elif trade == "electrical":
+            timing = [
+                ("Straight electrical permits mean work now. Panel and service upgrades mean work "
+                 "soon: a bigger panel is usually the first step before something else — a "
+                 "remodel, a charger, a hot tub, a solar install — so an upgrade permit is one "
+                 "of the earliest public signs that a household is about to spend on its home."),
+                ("The trade barely sleeps. Monthly electrical permits across the covered "
+                 f"counties ran between {lo_n:,} and {hi_n:,} over the last year — no real "
+                 "off-season, just a steady hum underneath every other trade's work."),
+            ]
+        if trade == "solar":
+            top2 = sorted(full_months, key=lambda ym: -by_month[ym])[:2]
+            if set(top2) == {"2025-11", "2025-12"}:
+                timing.insert(1,
+                    "One date explains the shape of the last year: the federal residential solar "
+                    "tax credit ended on December 31, 2025, and the two busiest months in this "
+                    f"record are the two right before it — {by_month['2025-11']:,} permits in "
+                    f"November 2025 and {by_month['2025-12']:,} in December 2025. Installs did not "
+                    "stop; they settled to a lower monthly pace.")
+
+        faqs = [(f"How many {trade} permits were issued in the last 12 months?",
+                 f"{total12:,} {trade} permits were issued across the {len(LIVE_SLUGS)} counties "
+                 f"PermitsByCounty covers in the last 12 months. {top_name} issued the most, with "
+                 f"{top_n:,}. Each county report carries its own coverage dates and source.")]
+        if trade == "plumbing":
+            faqs += [
+                ("Which plumbing permits mean work right now?",
+                 "Water-heater and re-pipe permits. Both are pulled when the job is done or about "
+                 "to start — a failed water heater does not wait. New-construction plumbing is the "
+                 "opposite: it is filed with the build and runs months ahead."),
+                ("How steady is plumbing work across the year?",
+                 f"Steadier than any other trade here: monthly plumbing permits across the "
+                 f"covered counties ran between {lo_n:,} and {hi_n:,} over the last year — no "
+                 "slow season in the record."),
+                ("Does a plumbing permit name the plumber?",
+                 "Where the source publishes a contractor of record, the county report carries "
+                 "the business name. Homeowner names are never published on this site — public "
+                 "business and permit facts only."),
+            ]
+        else:
+            faqs += tp["faqs"]
+
+        url = f"https://permitsbycounty.com/{tp['path']}/"
+        desc = tp["desc"].format(paged=paged, total=f"{total12:,}")
+        if not 150 <= len(desc) <= 160:
+            print(f"  [warn] {tp['path']} meta description is {len(desc)} chars (target 150-160)")
+        head_extra = (
+            f'<meta property="og:type" content="website" />\n'
+            f'<meta property="og:title" content="{esc(tp["title"])}" />\n'
+            f'<meta property="og:description" content="{esc(desc)}" />\n'
+            f'<meta property="og:url" content="{url}" />\n'
+            f'<meta property="og:image" content="https://permitsbycounty.com/assets/logo-full.jpg" />\n'
+            f'<meta name="twitter:card" content="summary" />\n'
+            f'<meta name="twitter:title" content="{esc(tp["title"])}" />\n'
+            f'<meta name="twitter:description" content="{esc(desc)}" />\n'
+            f'<meta name="twitter:image" content="https://permitsbycounty.com/assets/logo-full.jpg" />\n')
+
+        stats_html = f"""
+      <div class="stat"><div class="num">{total12:,}</div><div class="lab">{esc(label)} permits issued, last 12 months</div></div>
+      <div class="stat"><div class="num">{paged}</div><div class="lab">Counties with a {esc(label.lower())} report</div></div>
+      <div class="stat"><div class="num">{by_month[last_full_month]:,}</div><div class="lab">Issued in {month_label(last_full_month)}, all covered counties</div></div>
+      <div class="stat"><div class="num">{esc(CFG[top_slug]['city'])}</div><div class="lab">Busiest county ({top_n:,} permits)</div></div>"""
+        cite_html = (f"<strong>Citable figure:</strong> {total12:,} {trade} permits were issued across "
+                     f"the {len(LIVE_SLUGS)} counties PermitsByCounty covers in the last 12 months; "
+                     f"{esc(top_name)} issued the most ({top_n:,}).<br>PermitsByCounty data, all covered "
+                     f"counties, {month_label(last_full_month)} · Sources: the issuing cities and "
+                     "counties in the table below")
+        county_rows = "\n".join(
+            f"<tr><td><a href='/{slug}/{trade}/'>{esc(CFG[slug]['county_name'])} ({esc(CFG[slug]['city'])})</a></td>"
+            f"<td class='n'>{n:,}</td><td class='n'>{n / ct * 100:.1f}%</td>"
+            f"<td class='n'>{money_full(v) if v is not None else '—'}</td></tr>"
+            for slug, n, v, ct in rows)
+        month_rows = "\n".join(
+            f"<tr><td>{month_label(ym)}{' (partial — coverage begins this month)' if ym == months[0] else ' (to date)' if ym == current_month else ''}</td>"
+            f"<td class='n'>{by_month[ym]:,}</td></tr>"
+            for ym in reversed(months))
+        proj_rows = "\n".join(
+            f"<tr><td><strong>{esc(addr or 'Address not published')}</strong> "
+            f"<span class='note'>#{esc(num)}</span></td>"
+            f"<td>{esc(CFG[slug]['cite_place'])}</td>"
+            f"<td class='n'>{money_full(v)}</td><td>{esc(iss)}</td></tr>"
+            for addr, num, v, iss, slug in biggest)
+        timing_html = "\n    ".join(f"<p>{p}</p>" for p in timing)
+        qa_html = "\n".join(f'<div class="qa"><h3>{esc(q)}</h3><p>{esc(a)}</p></div>' for q, a in faqs)
+        blog_html = " · ".join(f"<a href=\"{href}\">{esc(text)}</a>" for text, href in tp["blog"])
+        others = " · ".join(
+            f"<a href=\"/{TRADE_PAGES[t]['path']}/\">{esc(TRADE_LABELS[t])}</a>"
+            for t in TRADE_PAGES if t != trade)
+        digest_block = (TRADE_DIGEST_BLOCK
+                        .replace("{TRADE_LABEL}", esc(label))
+                        .replace("{TRADE_VALUE}", esc(trade))
+                        .replace("{DIGEST_LINE}", tp["digest_line"]))
+        coverage_html = f'\n    <p class="note">{tp["coverage_note"]}</p>' if tp["coverage_note"] else ""
+        body = f"""
+    <p class="eyebrow">Trade report &middot; All covered counties</p>
+    <h1>{esc(tp['h1'])}</h1>
+    <p class="lede">{esc(tp['lede'])}</p>
+    <p class="stamp">Source: official permit records from the {len(LIVE_SLUGS)} counties PermitsByCounty covers. Our last pull: {PULL_LABEL} &middot; Figures are as reported by each issuing city or county.</p>
+    <div class="stats">{stats_html}
+    </div>
+    <div class="cite">{cite_html}</div>
+    <h2>{esc(tp['counts_h'])}</h2>
+    <p>{esc(tp['counts'])}</p>{coverage_html}
+    <h2>{esc(tp['timing_h'])}</h2>
+    {timing_html}
+    <h2>{esc(label)} permits by county — last 12 months</h2>
+    <table class="data"><tr><th>County</th><th class="n">Permits</th><th class="n">Share of county permits</th><th class="n">Reported value</th></tr>
+    {county_rows}
+    </table>
+    <p class="note">A dash in the value column means that county does not publish a usable project value, so we print counts only — the county report itself explains why. Counties with fewer than {TRADE_PAGE_MIN} {trade} permits in the last 12 months are counted in the totals above but do not get their own {trade} page — the same size rule the county reports use.</p>
+    <h2>{esc(label)} permits by month — all covered counties</h2>
+    <table class="data"><tr><th>Month</th><th class="n">Permits issued</th></tr>
+    {month_rows}
+    </table>
+    <h2>What a {esc(label.lower())} job is worth, where values are published</h2>
+    <p>Six of the covered counties state a project value on the permit itself — Chicago, San Francisco, Los Angeles, Orlando, Cincinnati, and Raleigh. Across those six, the middle reported {trade} permit is {median_val}: half state less, half state more. The biggest reported {trade} projects in the last 12 months:</p>
+    <table class="data"><tr><th>Project (permit #)</th><th>County</th><th class="n">Reported value</th><th>Issued</th></tr>
+    {proj_rows}
+    </table>
+    <p class="note">New York City states one cost for a whole job filing rather than a cost per permit, so its permits are counted in the tables above but left out of these value figures — a trade permit there would borrow the whole building's budget.</p>
+    <h2>Questions, answered from the data</h2>
+    {qa_html}
+    <h2>How PermitsByCounty helps</h2>
+    <p>Every report on this site is free. The county pages in the table above are the {trade} view of one county — monthly counts, the biggest or most recent permits, and figures checked against the source on every nightly refresh. If you want the full shape of a county report first, the <a href="/sample-report/">sample report</a> shows a complete one.</p>
+    <p>Keep reading: {blog_html}</p>
+{digest_block}
+    <p class="note">Other trade reports: {others}.</p>
+"""
+        dataset = {"@context": "https://schema.org", "@type": "Dataset",
+                   "name": f"{label} permits by county",
+                   "description": desc, "url": url, "dateModified": TODAY_ISO,
+                   "creator": {"@type": "Organization", "name": "PermitsByCounty",
+                               "url": "https://permitsbycounty.com/"},
+                   "publisher": {"@type": "Organization", "name": "PermitsByCounty",
+                                 "url": "https://permitsbycounty.com/"}}
+        page = page_shell(
+            tp["title"], desc, url,
+            [("Home", "https://permitsbycounty.com/"), (f"{label} permits", url)],
+            [dataset, faq_ld(faqs)],
+            body, head_extra=head_extra)
+        d = os.path.join(REPO, tp["path"])
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "index.html"), "w") as fh:
+            fh.write(page)
+        written.append(f"/{tp['path']}/")
+        print(f"[trades] {tp['path']}: total12={total12} paged={paged} top={top_slug} "
+              f"desc={len(desc)} chars")
+    _sitemap_add([(p, "0.8") for p in written])
+    print(f"[trades] wrote {len(written)} trade pages")
+    return written
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--county", default="il/cook", choices=sorted(CFG),
@@ -1626,6 +2201,7 @@ def main():
     args = ap.parse_args()
     con = sqlite3.connect(os.path.join(ENGINE, "data", "permits.db"))
     generate(con, args.county)
+    generate_trade_pages(con)
     con.close()
 
 
