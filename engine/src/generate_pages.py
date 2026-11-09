@@ -373,6 +373,45 @@ CFG = {
                      'for its value. And the dataset carries <strong>no electrical permits</strong> '
                      'at all, so no electrical figures appear in this report.</p>'),
     },
+    "oh/franklin": {
+        "registry": "columbus-franklin-oh",
+        "state_name": "Ohio", "state_abbr": "OH",
+        "county_name": "Franklin County", "crumb_county": "Franklin County, Ohio",
+        "h1": "Building Permits in Franklin County, Ohio",
+        "city": "Columbus",
+        "source_short": "City of Columbus",
+        "source_line": "City of Columbus open data — building permits issued by the Department of Building and Zoning Services",
+        "creator": "City of Columbus",
+        "cite_place": "Franklin County (Columbus)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Columbus's G3_VALUE_TTL failed validation on the full window
+        # (registry field_map.valuation — one drainage-tile permit states
+        # $6.14 billion, half the raw total; project values restate across
+        # sibling permits at the same address; and the field is absent for
+        # the MEP trades): the normalizer carries no valuation at all, so
+        # the county runs counts-only by construction.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is the City of Columbus's own building class for each "
+                          "permit (1, 2, and 3 Family and Multi Family count as Residential; "
+                          "the Graphics sign permits state no residential/commercial class)."),
+        "window_start": "2025-11-08",
+        "lede_hub": ("Every building permit issued by the City of Columbus — counted and "
+                     "sorted by trade, category, and month. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Columbus</strong> (Department of Building and Zoning '
+                     'Services). Columbus also extends into Delaware and Fairfield counties, '
+                     'and other Franklin County jurisdictions publish their permits separately '
+                     'and are not in this feed, so totals here are Columbus totals — labeled as '
+                     'such, never blended. Two facts about the city\'s data shape the figures. '
+                     'The layer is an issued-permits register — every permit in it carries an '
+                     'issue date — and it carries one row for every permit, so each permit is '
+                     'counted <strong>once</strong>, by its permit number. And the city\'s stated '
+                     'project-value field does not hold up as a per-permit value: one drainage '
+                     'permit states more than six billion dollars, project values repeat across '
+                     'a project\'s separate permits, and the trade permits state almost no value '
+                     'at all — so this report publishes permit counts, not a dollar total that '
+                     'would misstate the work.</p>'),
+    },
     "la/east-baton-rouge": {
         "registry": "baton-rouge-east-baton-rouge-la",
         "state_name": "Louisiana", "state_abbr": "LA",

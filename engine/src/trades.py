@@ -1012,3 +1012,70 @@ def classify_la_trade(permit_type="", description=""):
     if _contains(d, _LA_ROOF):
         return "roofing"
     return "general"
+
+
+def classify_columbus_trade(per_category="", per_sub_type=""):
+    """Columbus (City of Columbus ArcGIS 'Building Permits') trade
+    classification.
+
+    Columbus names its work families in B1_PER_CATEGORY and its permit
+    subtypes in B1_PER_SUB_TYPE, so — following the Fort Worth /
+    Cincinnati discipline — classification is exact-match on the
+    source's own naming, in this precedence (first match wins):
+
+    * B1_PER_SUB_TYPE 'Demolition' -> demolition. It fires first: its
+      181 window permits sit in the NA / Dwelling / Garage-Accessory
+      categories, none of which names a trade, and the subtype set
+      covers the GENERAL_TYPE demolition set (144).
+    * B1_PER_CATEGORY 'New Structure' -> new-construction (1,437;
+      the category and GENERAL_TYPE agree exactly on this set).
+    * the licensed-trade categories map directly: Mechanical -> hvac,
+      Electrical -> electrical, Plumbing -> plumbing,
+      Fire Alarm -> fire-alarm, Fire Suppression -> fire-protection.
+    * B1_PER_SUB_TYPE 'Sign' -> signage (1,439; exactly the Graphics
+      building class, whose category is NA — the subtype is the only
+      place the sign family is named).
+    * B1_PER_CATEGORY 'Swimming Pool' -> pool (57).
+    * the roof/siding/windows/doors family -> roofing: the combined
+      'Roof, Siding, Windows, Doors' category (9,619) plus its split
+      forms 'Roof' (289), 'Siding' (10), and 'Windows, Doors' (30) —
+      the city's own exterior-envelope family, filed under one
+      combined category for most of the window.
+    * everything else (Alteration, NA, Perimeter Drainage Tile,
+      Damage, Deck/Patio, Addition, and the rest) names no single
+      licensed trade -> general.
+
+    Simulated on the coordinator's full window pull before build
+    (2026-11-08, 43,861 rows; production must reproduce it exactly):
+    hvac 11,077 · roofing 9,948 · electrical 7,605 · plumbing 6,491 ·
+    general 4,126 · signage 1,439 · new-construction 1,437 ·
+    fire-alarm 812 · fire-protection 688 · demolition 181 · pool 57.
+    (The build brief's rough general estimate did not sum to the
+    window total; the simulated 4,126 is the exact remainder under
+    this precedence.) Deterministic; first match wins; kept separate
+    so other counties cannot be disturbed.
+    """
+    cat = (per_category or "").strip()
+    sub = (per_sub_type or "").strip()
+    if sub == "Demolition":
+        return "demolition"
+    if cat == "New Structure":
+        return "new-construction"
+    if cat == "Mechanical":
+        return "hvac"
+    if cat == "Electrical":
+        return "electrical"
+    if cat == "Plumbing":
+        return "plumbing"
+    if cat == "Fire Alarm":
+        return "fire-alarm"
+    if cat == "Fire Suppression":
+        return "fire-protection"
+    if sub == "Sign":
+        return "signage"
+    if cat == "Swimming Pool":
+        return "pool"
+    if cat in ("Roof, Siding, Windows, Doors", "Roof", "Siding",
+               "Windows, Doors"):
+        return "roofing"
+    return "general"

@@ -7,7 +7,8 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 import re
 
 from trades import (classify_boston_trade, classify_br_trade,
-                    classify_cincinnati_trade, classify_dekalb_trade,
+                    classify_cincinnati_trade, classify_columbus_trade,
+                    classify_dekalb_trade,
                     classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
                     classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
@@ -1548,6 +1549,91 @@ def normalize_la(raw, reg):
     }
 
 
+def normalize_columbus(raw, reg):
+    """One raw Columbus row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): B1_ALT_ID is exactly unique in
+    the trailing-12-month window (43,861 rows = 43,861 distinct
+    B1_ALT_ID, measured 2026-11-08 on three consistent reads) —
+    source_record_id = B1_ALT_ID, no collapsing. The layer is an
+    issued-permits register: every row carries ISSUED_DT. Privacy:
+    the pull is column-restricted by the registry pull_select —
+    APPLICANT_FULL_NAME (person names) is never requested from the
+    API at all. The only name carried is APPLICANT_BUS_NAME, the
+    permit's published applicant business name of record (present on
+    40,077 of 43,861 window permits); the source's literal
+    'PROPERTY OWNER' value (467 permits, owner-permitted work)
+    carries as NULL (the Cincinnati 'OWNER' treatment), and an empty
+    string carries as NULL. Valuation: G3_VALUE_TTL FAILED validation
+    on the full window (registry field_map.valuation — a $6.14B
+    drainage-tile outlier, project values restated across sibling
+    permits, and the field structurally absent for the MEP trades),
+    so valuation stays NULL and Franklin County runs counts-only;
+    the raw field stays in the vault as reported. Category:
+    B1_PER_TYPE is the city's own building class — '1,2,3 Family' and
+    'Multi Family' are residential, 'Commercial' is commercial, and
+    'Graphics' (the Sign permits) states no class and stays NULL.
+    Description: the layer publishes no free-text scope, so the
+    published description is composed from the source's own labels —
+    VALUE_DESC where present, else GENERAL_TYPE, else
+    B1_PER_CATEGORY (the Cincinnati treatment). Dates arrive as
+    ArcGIS epoch milliseconds; the layer publishes no application
+    date, so application_date stays NULL. City defaults to Columbus,
+    the issuing jurisdiction (the Austin/Seattle precedent) — the
+    layer publishes no city field.
+    """
+    sid = _clean(raw.get("B1_ALT_ID"))
+    if not sid:
+        return None
+    address = _clean(raw.get("SITE_ADDRESS"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    zipc = _clean(raw.get("B1_SITUS_ZIP"))
+    if zipc and zipc.endswith(".0"):
+        zipc = zipc[:-2]
+    contractor = _clean(raw.get("APPLICANT_BUS_NAME"))
+    if contractor and contractor.upper() == "PROPERTY OWNER":
+        contractor = None  # owner-permitted code names no company
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("PERMIT_STATUS"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    type_src = (_clean(raw.get("B1_PER_TYPE")) or "")
+    if type_src in ("1,2,3 Family", "Multi Family"):
+        category = "residential"
+    elif type_src == "Commercial":
+        category = "commercial"
+    else:
+        category = None  # Graphics sign permits state no class
+    desc = (_clean(raw.get("VALUE_DESC")) or _clean(raw.get("GENERAL_TYPE"))
+            or _clean(raw.get("B1_PER_CATEGORY")))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Columbus",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("B1_PER_CATEGORY")),
+        "trade": classify_columbus_trade(raw.get("B1_PER_CATEGORY"),
+                                         raw.get("B1_PER_SUB_TYPE")),
+        "category": category,
+        "project_description": desc,
+        "valuation": None,  # field failed validation; counts-only (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": None,  # source publishes no application-date field
+        "issue_date": _epoch_ms_date(raw.get("ISSUED_DT")),
+        "source_updated_date": _epoch_ms_date(raw.get("LAST_STATUS_DT")),
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1571,5 +1657,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "dekalb-ga": normalize_dekalb,
                "detroit-wayne-mi-building": normalize_detroit_building,
                "detroit-wayne-mi-trades": normalize_detroit_trades,
-               "los-angeles-ca": normalize_la}
+               "los-angeles-ca": normalize_la,
+               "columbus-franklin-oh": normalize_columbus}
 
