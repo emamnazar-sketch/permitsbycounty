@@ -1079,3 +1079,82 @@ def classify_columbus_trade(per_category="", per_sub_type=""):
                "Windows, Doors"):
         return "roofing"
     return "general"
+
+
+def classify_cleveland_trade(permit_category="", job_description="",
+                             work_description=""):
+    """Cleveland (City of Cleveland ArcGIS 'Issued Building Permits')
+    trade classification.
+
+    Cleveland names most work families in PERMIT_CATEGORY itself, so —
+    following the Fort Worth / Columbus discipline — classification is
+    exact-match on the source's own naming first, in this precedence
+    (first match wins):
+
+    * the licensed-trade categories map directly, in both their
+      class-prefixed forms (Residential Electrical, Commercial
+      Plumbing, Residential HVAC, ...) and their bare forms (Electrical,
+      Plumbing, HVAC and Refrigeration): electrical 2,684 ·
+      plumbing 2,156 · hvac 2,312.
+    * the elevator family — Elevator Dumbwaiter, Escalator Moving
+      Walk, and the two elevator-only categories Repair or Alteration
+      and Installation (their subtypes are elevator subtypes on every
+      window row) -> elevator (249).
+    * Fire Suppression Systems -> fire-protection (1).
+    * Board-ups (1,133 — securing a vacant property; real issued work
+      with named contractors, but no licensed trade) -> general.
+    * the remaining building families (Residential Building 4,049,
+      Commercial Building 973, New 898) are classified from the city's
+      own JOB_DESCRIPTION class, then from two unambiguous scope
+      signals in WORK_DESCRIPTION:
+        JOB_DESCRIPTION 'Demolition' -> demolition (401);
+        'New Building' / 'New Construction' -> new-construction (124);
+        'Commercial Signs' / 'Sign' / 'Signs' -> signage (205);
+        the fence classes ('Residential Fences', 'Commercial Fences',
+        'Fence', 'Fence-Garage-Deck-Pool') -> fencing (332);
+        WORK_DESCRIPTION naming solar panels -> solar (57);
+        WORK_DESCRIPTION naming a tear-off and re-roof / reroof ->
+        roofing (1,436 — the dominant Residential Building scope text
+        is the city's standard re-roof boilerplate).
+    * everything else (alterations, remodels, garages, decks,
+      foundations, change-of-use and violation-correction classes)
+      names no single licensed trade -> general.
+
+    Simulated on the coordinator's full window pull before build
+    (2026-11-10, 14,455 rows; production must reproduce it exactly):
+    general 4,498 · electrical 2,684 · hvac 2,312 · plumbing 2,156 ·
+    roofing 1,436 · demolition 401 · fencing 332 · elevator 249 ·
+    signage 205 · new-construction 124 · solar 57 · fire-protection 1.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    cat = (permit_category or "").strip()
+    job = (job_description or "").strip()
+    work = (work_description or "").upper()
+    if "Electrical" in cat:
+        return "electrical"
+    if "Plumbing" in cat:
+        return "plumbing"
+    if "HVAC" in cat:
+        return "hvac"
+    if cat in ("Elevator Dumbwaiter", "Escalator Moving Walk",
+               "Repair or Alteration", "Installation"):
+        return "elevator"
+    if cat == "Fire Suppression Systems":
+        return "fire-protection"
+    if cat == "Board-ups":
+        return "general"
+    if job == "Demolition":
+        return "demolition"
+    if job in ("New Building", "New Construction"):
+        return "new-construction"
+    if job in ("Commercial Signs", "Sign", "Signs"):
+        return "signage"
+    if job in ("Residential Fences", "Commercial Fences", "Fence",
+               "Fence-Garage-Deck-Pool"):
+        return "fencing"
+    if "SOLAR PANEL" in work:
+        return "solar"
+    if "RE-ROOF" in work or "REROOF" in work or "RE ROOF" in work:
+        return "roofing"
+    return "general"

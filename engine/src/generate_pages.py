@@ -373,6 +373,45 @@ CFG = {
                      'for its value. And the dataset carries <strong>no electrical permits</strong> '
                      'at all, so no electrical figures appear in this report.</p>'),
     },
+    "oh/cuyahoga": {
+        "registry": "cleveland-cuyahoga-oh",
+        "state_name": "Ohio", "state_abbr": "OH",
+        "county_name": "Cuyahoga County", "crumb_county": "Cuyahoga County, Ohio",
+        "h1": "Building Permits in Cuyahoga County, Ohio",
+        "city": "Cleveland",
+        "source_short": "City of Cleveland",
+        "source_line": "City of Cleveland open data — building permits issued by the Department of Building and Housing",
+        "creator": "City of Cleveland",
+        "cite_place": "Cuyahoga County (Cleveland)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Cleveland's JOB_VALUE passed validation on the full window
+        # (registry field_map.valuation — stated on 100% of permits, only
+        # 67 at $1, the largest figure appears once at 5.9% of the total,
+        # repeated $1M+ values are round applicant budgets, any sibling
+        # restatement bounds at 1.50% of the total, DB sum verified
+        # against the source-side total): values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is the City of Cleveland's own residential/commercial "
+                          "class for each permit, named in its permit category or subtype "
+                          "(the elevator and fire-suppression families state no class)."),
+        "window_start": "2025-11-10",
+        "lede_hub": ("Every building permit issued by the City of Cleveland — counted, "
+                     "valued, and sorted by trade. Free, and updated weekly."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Cleveland</strong> (Department of Building and '
+                     'Housing). Cuyahoga County\'s other cities issue their own permits '
+                     'through their own systems and are not in this feed, so totals here are '
+                     'Cleveland totals — labeled as such, never blended. Two facts about the '
+                     'city\'s data shape the figures. The dataset is an '
+                     '<strong>issued-permits register</strong> — every permit in it carries '
+                     'an issue date — and it carries one row for every permit, so each permit '
+                     'is counted <strong>once</strong>, by its permit number. And the city '
+                     'reloads this dataset in a weekly batch on Sundays, so the freshest '
+                     'permits can run about a week behind the calendar — the stamps above '
+                     'show the source\'s own dates. The register\'s board-up permits — '
+                     'issued permits to secure vacant properties — are counted as the '
+                     'permits they are; they state no job value ($0 as reported).</p>'),
+    },
     "oh/franklin": {
         "registry": "columbus-franklin-oh",
         "state_name": "Ohio", "state_abbr": "OH",

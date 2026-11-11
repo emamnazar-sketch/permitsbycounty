@@ -7,7 +7,8 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 import re
 
 from trades import (classify_boston_trade, classify_br_trade,
-                    classify_cincinnati_trade, classify_columbus_trade,
+                    classify_cincinnati_trade, classify_cleveland_trade,
+                    classify_columbus_trade,
                     classify_dekalb_trade,
                     classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
@@ -1634,6 +1635,106 @@ def normalize_columbus(raw, reg):
     }
 
 
+def _cleveland_address(raw_address):
+    """Cleveland's PRIMARY_ADDRESS is one full string ('8501 CARNEGIE
+    AVE, CLEVELAND, OH, 44106', with variants: no ZIP, ZIP+4, a missing
+    state, or a missing city segment on 34 window rows). Returns
+    (address, zip): the ZIP is the string's trailing ZIP/ZIP+4 (first
+    five digits), and the address is what remains after the city /
+    state / ZIP tail is removed, title-cased when all-caps (the
+    Columbus treatment)."""
+    import re
+    s = _clean(raw_address)
+    if not s:
+        return None, None
+    zipc = None
+    m = re.search(r"\b(\d{5})(?:-\d{4})?\s*$", s)
+    if m:
+        zipc = m.group(1)
+        s = s[:m.start()].rstrip(" ,")
+    s = re.sub(r",\s*CLEVELAND(\s*,\s*OH)?\s*$", "", s, flags=re.IGNORECASE)
+    s = re.sub(r",\s*OH\s*$", "", s, flags=re.IGNORECASE)
+    s = " ".join(s.split()).rstrip(" ,")
+    if s and s.isupper():
+        s = _title(s)
+    return s or None, zipc
+
+
+def normalize_cleveland(raw, reg):
+    """One raw Cleveland row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): PERMIT_ID is exactly unique in
+    the trailing-12-month window (14,455 rows = 14,455 distinct
+    PERMIT_ID, measured 2026-11-10 on three consistent reads) —
+    source_record_id = PERMIT_ID, no collapsing. The layer is an
+    issued-permits register: every row carries ISSUE_DATE. Privacy:
+    the pull is column-restricted by the registry pull_select —
+    CONTRACTOR_NAME (the installer of record, a person name) and
+    CONTRATOR_LICENSE_ID are never requested from the API at all.
+    The only name carried is CONTRATOR_BUSINESS_NAME (the source's
+    own spelling), the permit's published contractor business name
+    of record (present on 12,909 of 14,455 window permits); an empty
+    string carries as NULL. Valuation: JOB_VALUE PASSED validation
+    on the full window (registry field_map.valuation — stated on
+    100% of permits, the largest figure appears once at 5.9% of the
+    total, repeated $1M+ values are round applicant budgets, and any
+    sibling restatement bounds at 1.50% of the total), so values
+    publish as reported. Category: the source's own
+    residential/commercial naming — the PERMIT_CATEGORY class prefix
+    where it states one, else the PERMIT_SUBTYPE class; the elevator
+    and fire families state no class and stay NULL.
+    Description: WORK_DESCRIPTION (the source's free-text scope,
+    present on 14,453 of 14,455) with JOB_DESCRIPTION as the fallback.
+    Dates arrive as ArcGIS epoch milliseconds. City defaults to
+    Cleveland, the issuing jurisdiction (the Austin/Seattle
+    precedent) — the layer publishes no separate city field; the
+    city is inside the address string itself.
+    """
+    sid = _clean(raw.get("PERMIT_ID"))
+    if not sid:
+        return None
+    address, zipc = _cleveland_address(raw.get("PRIMARY_ADDRESS"))
+    contractor = _clean(raw.get("CONTRATOR_BUSINESS_NAME"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("CURRENT_TASK_STATUS"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    cat_src = (_clean(raw.get("PERMIT_CATEGORY")) or "")
+    sub_src = (_clean(raw.get("PERMIT_SUBTYPE")) or "")
+    if cat_src.startswith("Residential") or sub_src == "Residential":
+        category = "residential"
+    elif cat_src.startswith("Commercial") or sub_src == "Commercial":
+        category = "commercial"
+    else:
+        category = None  # elevator / fire families state no class
+    desc = (_clean(raw.get("WORK_DESCRIPTION"))
+            or _clean(raw.get("JOB_DESCRIPTION")))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Cleveland",
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("PERMIT_CATEGORY")),
+        "trade": classify_cleveland_trade(raw.get("PERMIT_CATEGORY"),
+                                          raw.get("JOB_DESCRIPTION"),
+                                          raw.get("WORK_DESCRIPTION")),
+        "category": category,
+        "project_description": desc,
+        "valuation": _num(raw.get("JOB_VALUE")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _epoch_ms_date(raw.get("FILE_DATE")),
+        "issue_date": _epoch_ms_date(raw.get("ISSUE_DATE")),
+        "source_updated_date": None,  # layer publishes no per-row stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1658,5 +1759,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "detroit-wayne-mi-building": normalize_detroit_building,
                "detroit-wayne-mi-trades": normalize_detroit_trades,
                "los-angeles-ca": normalize_la,
-               "columbus-franklin-oh": normalize_columbus}
+               "columbus-franklin-oh": normalize_columbus,
+               "cleveland-cuyahoga-oh": normalize_cleveland}
 
