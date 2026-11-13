@@ -7,6 +7,7 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 import re
 
 from trades import (classify_boston_trade, classify_br_trade,
+                    classify_buffalo_trade,
                     classify_cincinnati_trade, classify_cleveland_trade,
                     classify_columbus_trade,
                     classify_dekalb_trade,
@@ -1735,6 +1736,92 @@ def normalize_cleveland(raw, reg):
     }
 
 
+
+def _buffalo_desc(v):
+    """Buffalo's descofwork arrives with embedded HTML markup and
+    entities on about a fifth of window rows; strip tags, unescape,
+    and collapse whitespace so pages never show raw markup."""
+    import html as _html
+    s = _clean(v)
+    if not s:
+        return None
+    s = _html.unescape(re.sub(r"<[^>]+>", " ", s))
+    s = re.sub(r"\s+", " ", s).strip()
+    return s or None
+
+
+def _buffalo_category(code):
+    """New York State property class: 200-299 residential dwellings,
+    400+ the state's commercial major class, else unstated."""
+    try:
+        n = int(float(code))
+    except (TypeError, ValueError):
+        return None
+    if 200 <= n <= 299:
+        return "residential"
+    if n >= 400:
+        return "commercial"
+    return None
+
+
+def normalize_buffalo(raw, reg):
+    """One raw Buffalo row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): apno is exactly unique in the
+    trailing-12-month window (11,359 rows = 11,359 distinct apno,
+    measured 2026-11-12 on the full pull) — source_record_id = apno,
+    no collapsing. The dataset is an issued-permits register: every
+    row carries issued. Privacy: the pull is column-restricted by the
+    registry pull_select — applicant (a mixed person/business field
+    with no separation), inspector, and licno are never requested
+    from the API at all, so contractor_name is NULL on every record.
+    Valuation: value PASSED validation on the full window (registry
+    field_map.valuation — stated on 100% of permits, the largest
+    figure appears once dataset-wide, same-address/same-value
+    restatement bounds at 0.89%), so values publish as reported.
+    Category: the New York State property class code (200-299 =
+    residential, 400+ = commercial, else unstated). Status: the
+    dataset publishes no status field and contains no pending
+    permits, so status is 'issued' by construction. The dataset
+    publishes no application date; application_date stays NULL.
+    Address: stname is the full street address including the house
+    number; title-cased when it arrives all-caps (the Columbus
+    treatment). City defaults to Buffalo, the issuing jurisdiction,
+    where the row itself states none (the Austin/Seattle precedent).
+    """
+    sid = _clean(raw.get("apno"))
+    if not sid:
+        return None
+    addr = _clean(raw.get("stname"))
+    if addr and addr.isupper():
+        addr = _title(addr)
+    city = _clean(raw.get("city"))
+    city = _title(city) if city and city.isupper() else (city or "Buffalo")
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": addr,
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zip")),
+        "permit_type": _clean(raw.get("aptype")),
+        "trade": classify_buffalo_trade(raw.get("aptype"),
+                                        raw.get("descofwork")),
+        "category": _buffalo_category(raw.get("property_class_code")),
+        "project_description": _buffalo_desc(raw.get("descofwork")),
+        "valuation": _num(raw.get("value")),
+        "status": "issued",
+        "status_source": None,
+        "application_date": None,
+        "issue_date": _date(raw.get("issued")),
+        "source_updated_date": None,
+        "contractor_name": None,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1760,5 +1847,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "detroit-wayne-mi-trades": normalize_detroit_trades,
                "los-angeles-ca": normalize_la,
                "columbus-franklin-oh": normalize_columbus,
-               "cleveland-cuyahoga-oh": normalize_cleveland}
+               "cleveland-cuyahoga-oh": normalize_cleveland,
+               "buffalo-erie-ny": normalize_buffalo}
 

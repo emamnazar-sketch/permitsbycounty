@@ -920,6 +920,49 @@ CFG = {
                      'permits — DOB publishes those in separate datasets — so no electrical figures '
                      'appear in this report.</p>'),
     },
+    "ny/erie": {
+        "registry": "buffalo-erie-ny",
+        "state_name": "New York", "state_abbr": "NY",
+        "county_name": "Erie County", "crumb_county": "Erie County, New York",
+        "h1": "Building Permits in Erie County, New York",
+        "city": "Buffalo",
+        "source_short": "City of Buffalo",
+        "source_line": "City of Buffalo open data — permits issued by the Department of Permit & Inspection Services",
+        "creator": "City of Buffalo",
+        "cite_place": "Erie County (Buffalo)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Buffalo's value field passed validation on the full window
+        # (registry field_map.valuation — stated on 100% of permits,
+        # the largest figure appears once in the whole dataset, any
+        # same-address/same-value restatement bounds at 0.89% of the
+        # total, DB sum verified against the source-side total):
+        # values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category follows the New York State property class code the "
+                          "city publishes for each permit: the 200-class codes "
+                          "(residential dwellings) count as Residential and the "
+                          "400-and-above codes (the state's commercial major class, "
+                          "including apartment buildings) count as Commercial; vacant "
+                          "land and other codes state no class."),
+        "window_start": "2025-11-12",
+        "lede_hub": ("Every building permit issued by the City of Buffalo — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Buffalo</strong> (Department of Permit &amp; Inspection '
+                     'Services). Erie County\'s other cities and towns issue their own permits '
+                     'through their own systems and are not in this feed, so totals here are '
+                     'Buffalo totals — labeled as such, never blended. Two facts about the '
+                     'city\'s data shape the figures. The dataset is an '
+                     '<strong>issued-permits register</strong> — every permit in it carries an '
+                     'issue date and the city\'s own notes state it holds no pending permits — '
+                     'and it carries one row for every permit, so each permit is counted '
+                     '<strong>once</strong>, by its permit number. And the value the city '
+                     'states for a permit is the value of the work it covers: for a phased '
+                     'project the city states the whole project cost on the first permit '
+                     'secured, and the trade permits that follow carry their own scope '
+                     'values — the largest projects are shown with their descriptions, so '
+                     'the shape of each figure stays visible.</p>'),
+    },
 }
 
 CSS = """

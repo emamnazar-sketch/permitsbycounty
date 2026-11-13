@@ -1158,3 +1158,86 @@ def classify_cleveland_trade(permit_category="", job_description="",
     if "RE-ROOF" in work or "REROOF" in work or "RE ROOF" in work:
         return "roofing"
     return "general"
+
+
+def classify_buffalo_trade(aptype="", description=""):
+    """Buffalo (City of Buffalo Socrata 'Permits') trade classification.
+
+    Buffalo names most work families in aptype itself, so — following
+    the Fort Worth / Columbus / Cleveland discipline — classification
+    is exact-match on the source's own naming first, in this
+    precedence (first match wins):
+
+    * the licensed-trade families map directly: ELECTRICAL ->
+      electrical (3,049), PLUMBING -> plumbing (2,684), HEATING ->
+      hvac (1,697), ELEVATOR -> elevator (48), SIGN / BILLBOARD ->
+      signage (91), SWIM POOL -> pool (15).
+    * DEMOLITION -> demolition (25) and TEAROUT -> demolition (75):
+      Buffalo's tear-out permits are interior-demolition permits on
+      their own descriptions (tear out / selective demolition /
+      gut-out, preparatory to separately permitted rebuild work).
+    * FENDRIVE (fence/driveway) counts as fencing ONLY where the
+      description itself names a fence (22) — 186 of its 247 window
+      permits are driveway work and stay general.
+    * the remaining families (REPAIR 2,604, REP-PLANS 397, GC 212,
+      INTBLDOUT 61, USE 83, GARSHED 46, TANK 6, TOWERSATT 10,
+      PARKINGLOT 8, OUTDORCAFE 1, plus the driveway share of
+      FENDRIVE) are classified from three unambiguous scope signals
+      in the cleaned description text:
+        solar-panel scope -> solar (6 — trade-family permits naming
+          solar panels stay with their family, the Cleveland rule);
+        roof scope (re-roof / tear-off-and-replace / new roof system /
+          shingle replacement) -> roofing (1,335 — Buffalo's repair
+          register is dominated by tear-off-and-reroof work; a
+          15-permit random sample of the widened match was verified
+          as roof work permit by permit at audit);
+        new-construction scope (new building / construction of new /
+          new dwelling and house forms) -> new-construction (56);
+        an explicit demolish/demolition/ raze signal inside the
+          building families -> demolition (22 of the 122 total).
+    * everything else names no single licensed trade -> general.
+
+    Simulated on the coordinator's full window pull before build
+    (2026-11-12, 11,359 rows; production must reproduce it exactly):
+    electrical 3,049 · plumbing 2,684 · general 2,234 · hvac 1,697 ·
+    roofing 1,335 · demolition 122 · signage 91 · new-construction 56 ·
+    elevator 48 · fencing 22 · pool 15 · solar 6.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    import html as _html
+    import re as _re
+    t = (aptype or "").strip().upper()
+    d = _html.unescape(_re.sub(r"<[^>]+>", " ", description or "")).upper()
+    if t == "ELECTRICAL":
+        return "electrical"
+    if t == "PLUMBING":
+        return "plumbing"
+    if t == "HEATING":
+        return "hvac"
+    if t == "ELEVATOR":
+        return "elevator"
+    if t in ("SIGN", "BILLBOARD"):
+        return "signage"
+    if t in ("DEMOLITION", "TEAROUT"):
+        return "demolition"
+    if t == "SWIM POOL":
+        return "pool"
+    if t == "FENDRIVE":
+        return "fencing" if "FENCE" in d else "general"
+    if "SOLAR PANEL" in d:
+        return "solar"
+    if _re.search(r"RE-?ROOF|REROOF|ROOF REPLACEMENT|REPLACE.{0,12}ROOF|"
+                  r"NEW ROOF|ROOF SYSTEM|TEAR ?OFF.{0,30}ROOF|"
+                  r"STRIP.{0,20}ROOF|SHINGL", d):
+        return "roofing"
+    if _re.search(r"NEW CONSTRUCTION|NEW BUILDING|CONSTRUCT NEW|"
+                  r"CONSTRUCTION OF NEW|ERECT A NEW|BUILD NEW|"
+                  r"NEW DWELLING|NEW SINGLE FAMILY|NEW 1 FAMILY|"
+                  r"NEW ONE FAMILY|NEW 2 FAMILY|NEW TWO FAMILY|"
+                  r"NEW HOUSE", d):
+        return "new-construction"
+    if t in ("REPAIR", "REP-PLANS", "GC", "INTBLDOUT") and \
+            _re.search(r"\bDEMOLISH|DEMOLITION|RAZE", d):
+        return "demolition"
+    return "general"

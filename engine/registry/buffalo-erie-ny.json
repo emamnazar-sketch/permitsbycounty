@@ -1,0 +1,65 @@
+{
+ "api_base": "https://data.buffalony.gov/resource/9p2d-f3yt.json",
+ "audit_2026_11_12": "FRESH AUDIT PASSED (first-hand, 2026-11-12) \u2014 candidate order worked: Greensboro NC re-probed (city GIS MapServer layer closed connections again, unverifiable, no verdict); Durham NC audited and FAILED full verification (no address/city/ZIP fields at all in its 'All Building Permits' layer, 5,315 TTM rows vs 5,312 distinct PermitNum, geography unverified, building-only); Buffalo NY passed. (1) Dataset 'Permits' 9p2d-f3yt (City of Buffalo, Department of Permit & Inspection Services, provenance official, public access): 279,124 rows all-time, every row carries apno/aptype/issued; the portal's 'All permits since 1/1/2018' item (e48j-dfaz) is a filter view on this dataset and cannot be read directly ('Cannot read rows for view'), so the parent dataset is the source. Item states Update Frequency 'Daily'; rowsUpdatedAt 2026-11-12T15:07:25Z at audit. (2) VOLUME STABILITY by issued year: 2020 10,289 / 2021 11,155 / 2022 10,963 / 2023 12,502 / 2024 12,172 / 2025 12,470 / 2026 YTD 9,620 \u2014 no collapse; TTM full months run 723\u20131,077. (3) IDENTITY on the full paged TTM pull (issued >= 2025-11-12, saved as buffalo-window-pull.json in the run folder): 11,359 rows = 11,359 distinct apno, 0 duplicates, 0 null ids \u2014 one row per permit. September 2026 cross-check figure: 1,010 permits; October 2026: 1,077; latest issued 2026-11-11. (4) VALUATION PASSED \u2014 values publish (see field_map.valuation). (5) Terms: portal metadata licenseId USGOV_WORKS (Public Domain U.S. Government); figures published 'as reported by the City of Buffalo' with attribution. Audit evidence: ~/workspace/goals/permitsbycounty/hidden_files/expansion-2026-11-12/.",
+ "county": "Erie County",
+ "county_fips": "36029",
+ "county_slug": "ny/erie",
+ "coverage_note": "Permits issued by the City of Buffalo only. Other Erie County jurisdictions publish their permits separately and are not in this feed; totals here are City of Buffalo totals, labeled as such.",
+ "dataset_id": "9p2d-f3yt",
+ "date_onboarded": "2026-11-12",
+ "dedupe_rule": {
+  "definition": "One published permit = one apno in the City of Buffalo's Permits dataset. The dataset's grain is one row per permit: no collapsing applies or is needed.",
+  "measurement": "Trailing-12-month window (issued >= 2025-11-12), measured 2026-11-12 on the full paged pull saved as audit evidence: 11,359 rows = 11,359 distinct apno, 0 duplicates, 0 null permit numbers. The pipeline's in-batch duplicate gate and the (county_id, source_record_id) upsert key guard every future pull."
+ },
+ "field_map": {
+  "address": "stname, as published (the full street address including house number, e.g. '130 MAIN'; present on 11,359 of 11,359 window permits; title-cased at normalization). The dataset publishes no separate house-number field.",
+  "application_date": "Not published by the dataset (it carries an issue date and, on some permits, an expiration date only) \u2014 application_date stays NULL by construction.",
+  "category": "New York State property_class_code, the state's own assessment classes: codes 200\u2013299 (residential dwellings) = Residential (8,782 window permits); codes 400 and above (the state's commercial major class, including 411 Apartment) = Commercial (2,210); vacant-land (3xx), agricultural, and missing codes state no residential/commercial class and stay NULL (367).",
+  "contractor_rule": "NO contractor name is carried. The dataset's applicant field mixes person names (the individual licensees and homeowners who applied) with business names with no role or business/person separation, so under SOP section 3 rule 1 it is never requested at all; inspector (city staff person names) and licno are likewise never requested. contractor_name is NULL on every Buffalo record (the San Francisco / Seattle treatment: no separable contractor business field is published).",
+  "issue_date": "issued (a Socrata calendar_date). The window is defined on it: the dataset is an issued-permits register \u2014 its own notes state it does not contain pending permits.",
+  "permit_number": "apno \u2014 verified exactly unique in the trailing-12-month window (11,359 distinct apno = 11,359 rows, 2026-11-12 audit).",
+  "permit_type_source": "aptype, the city's own permit family naming (ELECTRICAL, PLUMBING, HEATING, REPAIR, REP-PLANS, GC, SIGN, ELEVATOR, DEMOLITION, TEAROUT, FENDRIVE, SWIM POOL, ...).",
+  "project_description": "descofwork, as published, with embedded HTML markup stripped and entities unescaped at normalization (2,409 of 11,359 window descriptions arrive with markup).",
+  "source_record_id": "apno (see permit_number).",
+  "status_source": "The dataset publishes no status field and contains no pending permits, so status is 'issued' for every record by construction; status_source stays NULL.",
+  "valuation": "value, the city's stated value of work. PASSED validation on the full window (2026-11-12): stated on 100% of window permits (0 null; $0 on 42, all of them USE permits stating no construction value; $1 on 472 \u2014 344 of them electrical, an immaterial placeholder convention totaling $472; none negative); total $783,165,411.56; median positive $6,000. The dataset's own stated design \u2014 a phased project's whole cost appears on its first permit \u2014 was verified on the largest projects: the $139,636,000 North Aud Block redevelopment value at 130 Main St appears exactly once in the entire dataset (all-time count 1) while its sibling permits carry their own small scope values ($18,000 electrical, $7,500 sign); the $75,000,000 Towne Gardens figure states once in the window alongside per-building heating values on 36 separate building permits; the 575 Main elevator program splits its $1.8M evenly across its 7 elevator permits, so the stated shares sum to the program total rather than restating it. Same-address + same-value groups above $10k bound any restatement excess at $6,984,823.84 = 0.89% of the total. The largest permit is 17.8% of the total \u2014 one real, named, once-stated redevelopment project, disclosed on the Data Sources page. Every trade family states per-permit values on 100% of its permits. Values publish as reported.",
+  "zip": "zip, as published (present on 11,357 of 11,359 window permits)."
+ },
+ "history_range": "279,124 rows at audit (permits issued from 2000 to present per the dataset description); we backfill the trailing 12 months only (site rule).",
+ "jurisdiction": "Buffalo",
+ "jurisdiction_label": "City of Buffalo, Erie County",
+ "license": "Public Domain U.S. Government (portal metadata licenseId USGOV_WORKS); attribution: City of Buffalo, New York",
+ "order_tiebreak": "apno",
+ "pull_select": [
+  "apno",
+  "aptype",
+  "issued",
+  "stname",
+  "city",
+  "state",
+  "zip",
+  "value",
+  "property_class_code",
+  "descofwork"
+ ],
+ "qa_thresholds": {
+  "backfill_expected_volume_12mo": 11359,
+  "backfill_volume_tolerance": 0.25,
+  "freshness_max_age_hours": 48,
+  "valuation_max_plausible_usd": 2000000000
+ },
+ "rate_limit": "Socrata anonymous tier; paged pulls with polite pacing.",
+ "refresh_tier": 1,
+ "registry_status": "live",
+ "source_name": "City of Buffalo open data \u2014 Permits (Department of Permit & Inspection Services)",
+ "source_type": "socrata",
+ "source_url": "https://data.buffalony.gov/d/9p2d-f3yt",
+ "state": "NY",
+ "status_map": {
+  "ISSUED": "issued"
+ },
+ "terms_status": "verified-open-2026-11-12: the dataset's portal metadata (provenance: official; publisher: City of Buffalo, Department of Permit & Inspection Services) lists licenseId USGOV_WORKS \u2014 Public Domain U.S. Government; figures are published 'as reported by the City of Buffalo' with attribution; no endorsement is implied.",
+ "update_cadence": "Daily (the dataset's own stated update frequency; MEASURED 2026-11-12: rowsUpdatedAt 2026-11-12T15:07:25Z, same day as the audit, and newest issued 2026-11-11). Freshness (gate 5) is measured as the dataset's rowsUpdatedAt under a 48h threshold (the Socrata-county standard).",
+ "watermark_field": "issued + apno \u2014 refresh re-pulls by the issued watermark and upserts.",
+ "wave": "wave-2-metro"
+}
