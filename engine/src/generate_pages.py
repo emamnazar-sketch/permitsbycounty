@@ -1320,6 +1320,17 @@ def page_shell(title, description, canonical, crumbs, ld_extra, body, head_extra
                                       "name": n, "item": u} for i, (n, u) in enumerate(crumbs)]}
     lds = "\n".join(f'<script type="application/ld+json">{json.dumps(x)}</script>'
                     for x in [crumbs_ld] + ld_extra)
+    og_block = ""
+    if "og:title" not in head_extra:
+        og_block = (
+            '<meta property="og:type" content="website" />\n'
+            f'<meta property="og:title" content="{esc(title)}" />\n'
+            f'<meta property="og:description" content="{esc(description)}" />\n'
+            f'<meta property="og:url" content="{canonical}" />\n'
+            '<meta property="og:image" content="https://permitsbycounty.com/assets/logo-full.jpg" />\n'
+            '<meta name="twitter:card" content="summary" />\n'
+            f'<meta name="twitter:title" content="{esc(title)}" />\n'
+            f'<meta name="twitter:description" content="{esc(description)}" />\n')
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -1329,7 +1340,7 @@ def page_shell(title, description, canonical, crumbs, ld_extra, body, head_extra
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}" />
 <link rel="canonical" href="{canonical}" />
-{head_extra}<link rel="preconnect" href="https://fonts.googleapis.com" />
+{og_block}{head_extra}<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>{CSS}</style>
@@ -1410,6 +1421,97 @@ def recent_table(con, county_id, where, params, limit=8):
                    f"<td>{esc(TRADE_LABELS.get(trade, trade))}</td><td>{esc(iss)}</td></tr>")
     out.append("</table>")
     return "\n".join(out)
+
+
+GENERAL_GUIDES = [
+    ("How contractors find jobs from newly issued building permits",
+     "find-jobs-from-newly-issued-building-permits"),
+    ("How suppliers find job sites before ground break",
+     "suppliers-find-job-sites-before-ground-breaks"),
+]
+
+GUIDE_LINKS = {
+    "tx/travis": [
+        ("Pool, fence and deck permits in Travis County", "travis-county-pool-fence-deck-permits"),
+        ("What building permits were issued in Austin this month?", "austin-permits-issued-this-month"),
+        ("Which Texas metros issue the most swimming pool permits?", "texas-metros-most-swimming-pool-permits"),
+    ],
+    "tx/tarrant": [
+        ("Fort Worth permits the day they are issued", "fort-worth-permits-day-they-are-issued"),
+        ("Which Texas metros issue the most swimming pool permits?", "texas-metros-most-swimming-pool-permits"),
+    ],
+    "tx/bexar": [
+        ("Which Texas metros issue the most swimming pool permits?", "texas-metros-most-swimming-pool-permits"),
+    ],
+    "fl/miami-dade": [
+        ("How to close an open permit in Miami-Dade, Broward or Palm Beach County", "close-open-permit-miami-dade-broward-palm-beach"),
+        ("Can I sell a house with open or expired permits in Florida?", "sell-house-open-expired-permits-florida"),
+    ],
+    "fl/orange": [
+        ("How to check Orange County, Florida permit history", "orange-county-florida-permit-history"),
+        ("Can I sell a house with open or expired permits in Florida?", "sell-house-open-expired-permits-florida"),
+    ],
+    "fl/hillsborough": [
+        ("Can I sell a house with open or expired permits in Florida?", "sell-house-open-expired-permits-florida"),
+    ],
+    "il/cook": [
+        ("How to look up Chicago building permits and violations by address", "chicago-building-permits-violations-by-address"),
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ca/san-francisco": [
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ca/los-angeles": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "ny/new-york": [
+        ("How to check open permits in New York City", "nyc-open-permits-check"),
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ny/kings": [
+        ("How to check open permits in New York City", "nyc-open-permits-check"),
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ny/queens": [
+        ("How to check open permits in New York City", "nyc-open-permits-check"),
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ny/bronx": [
+        ("How to check open permits in New York City", "nyc-open-permits-check"),
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ny/richmond": [
+        ("How to check open permits in New York City", "nyc-open-permits-check"),
+        ("How much do building permits cost in Chicago, New York and San Francisco?", "building-permit-cost-chicago-nyc-san-francisco"),
+    ],
+    "ny/erie": [
+        ("What permit activity tells real estate investors about where to buy next", "permit-activity-investors-where-to-buy-next"),
+    ],
+    "mi/wayne": [
+        ("Who are the busiest contractors in my territory?", "busiest-contractors-in-my-territory"),
+    ],
+    "ga/dekalb": [
+        ("Who are the busiest contractors in my territory?", "busiest-contractors-in-my-territory"),
+    ],
+    "nc/wake": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "oh/cuyahoga": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "oh/franklin": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "oh/hamilton": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "pa/allegheny": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "pa/philadelphia": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+}
 
 
 def generate(con, slug):
@@ -1494,10 +1596,11 @@ def generate(con, slug):
         projects_html = projects_table(con, county_id, "substr(issue_date,1,7)=?", (ctx.current_month,))
         digest_line = "One free email a week with the county's new permits, biggest projects, and trade movements."
         hub_desc = (f"{city} {noun} for {cfg['county_name']}: {last_n:,} issued in {month_label(ctx.last_full_month)} "
-                    f"({money_short(last_v)} reported value), permits by trade and month, biggest projects. "
-                    "Free public-record reports, updated daily.")
+                    f"({money_short(last_v)} reported value). Counts and values by trade and month, updated daily.")
         hub_title = (f"Building Permits in {cfg['county_name']} ({city}), {cfg['state_abbr']} "
-                     "— Counts, Values & Trades | PermitsByCounty")
+                     "| PermitsByCounty")
+        if len(hub_title) > 70:
+            hub_title = hub_title[: -len(" | PermitsByCounty")]
     else:
         qas = [
             (f"How many {noun} were issued in {city} in {month_label(ctx.last_full_month)}?",
@@ -1530,11 +1633,12 @@ def generate(con, slug):
         projects_head = f"Most recent permits issued in {month_label(ctx.current_month)}"
         projects_html = recent_table(con, county_id, "substr(issue_date,1,7)=?", (ctx.current_month,))
         digest_line = "One free email a week with the county's new permits, monthly counts, and trade movements."
-        hub_desc = (f"{city} {noun} for {cfg['county_name']}: {last_n:,} issued in {month_label(ctx.last_full_month)}, "
-                    "permits by trade, category and month, monthly archives. "
-                    "Free public-record reports, updated daily.")
+        hub_desc = (f"{city} {noun} for {cfg['county_name']}: {last_n:,} issued in {month_label(ctx.last_full_month)}. "
+                    "Counts by trade, month and category, updated daily. Free public records.")
         hub_title = (f"Building Permits in {cfg['county_name']} ({city}), {cfg['state_abbr']} "
-                     "— Counts & Trades | PermitsByCounty")
+                     "| PermitsByCounty")
+        if len(hub_title) > 70:
+            hub_title = hub_title[: -len(" | PermitsByCounty")]
 
     category_html = ""
     if cfg["show_category"]:
@@ -1556,6 +1660,22 @@ def generate(con, slug):
                     .replace("{COUNTY_NAME}", esc(cfg["county_name"]))
                     .replace("{COUNTY_VALUE}", esc(f"{cfg['county_name']}, {cfg['state_abbr']}"))
                     .replace("{DIGEST_LINE}", digest_line))
+    guide_items = list(GUIDE_LINKS.get(slug, []))
+    for g in GENERAL_GUIDES:
+        if g not in guide_items:
+            guide_items.append(g)
+    guides_html = ("    <h2>Related guides from The Permit Blog</h2>\n    <ul>\n"
+                   + "\n".join(f'      <li><a href="/blog/{gs}/">{esc(gt)}</a></li>'
+                               for gt, gs in guide_items[:4])
+                   + "\n    </ul>")
+    sibs = [s for s in LIVE_SLUGS
+            if s != slug and CFG[s]["state_abbr"] == cfg["state_abbr"]]
+    siblings_html = ""
+    if sibs:
+        sib_links = ", ".join(
+            f'<a href="/{s}/">{esc(CFG[s]["county_name"])}</a>' for s in sibs)
+        siblings_html = (f'    <p class="note">Other {esc(cfg["state_name"])} county reports: '
+                         f'{sib_links}.</p>')
     body = f"""
     <p class="eyebrow">County report &middot; {esc(cfg['state_name'])}</p>
     <h1>{esc(cfg['h1'])}</h1>
@@ -1578,6 +1698,8 @@ def generate(con, slug):
     </table>{category_html}
     <h2>{projects_head}</h2>
     {projects_html}
+{guides_html}
+{siblings_html}
 {digest_block}
 """
     hub = page_shell(
