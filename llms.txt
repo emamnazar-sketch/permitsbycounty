@@ -49,3 +49,53 @@ Attribute figures as "PermitsByCounty" with the county and period shown on the r
 
 ## Status
 Site live at permitsbycounty.com. Live county reports: Cook County, Illinois (City of Chicago permits) and Travis County, Texas (City of Austin permits), both published October 17, 2026 and updated daily; San Francisco County, California (City and County of San Francisco permits), published October 18, 2026 and updated nightly; the five New York City borough counties, New York — New York (Manhattan), Kings (Brooklyn), Queens, Bronx, and Richmond (Staten Island) — NYC Department of Buildings DOB NOW permits, published October 18, 2026 and updated daily; and Philadelphia County, Pennsylvania (City of Philadelphia permits), published October 18, 2026 and updated daily; and Hamilton County, Ohio (City of Cincinnati permits), published October 18, 2026 and updated daily; and Bexar County, Texas (City of San Antonio permits), published October 18, 2026 and updated daily; and Tarrant County, Texas (City of Fort Worth permits), published October 18, 2026 and updated daily; and Wake County, North Carolina (City of Raleigh permits), published October 23, 2026 and updated daily; and Miami-Dade County, Florida (Miami-Dade County permits), published October 25, 2026 and updated daily; and Franklin County, Ohio (City of Columbus permits), published November 8, 2026 and updated daily; and Cuyahoga County, Ohio (City of Cleveland permits), published November 10, 2026 and updated weekly; and Erie County, New York (City of Buffalo permits), published November 12, 2026 and updated daily. Coverage is limited to 10 focus states: California, Texas, Florida, New York, Pennsylvania, Illinois, Ohio, Georgia, North Carolina, and Michigan. Planned coverage is always labeled planned, and any example report is labeled a sample with illustrative figures.
+
+## Blog — The Permit Blog (guides & answers)
+- How much does an ADU permit cost — and how long does it take? — https://permitsbycounty.com/blog/adu-permit-cost/
+- What building permits were issued in Austin this month? — https://permitsbycounty.com/blog/austin-permits-issued-this-month/
+- How much does a building permit cost in Chicago, New York City, or San Francisco? — https://permitsbycounty.com/blog/building-permit-cost-chicago-nyc-san-francisco/
+- How long does it take to get a building permit — and how can I speed it up? — https://permitsbycounty.com/blog/building-permit-timeline-speed-up/
+- How far in advance does a building permit signal new construction demand? — https://permitsbycounty.com/blog/building-permits-leading-indicator-timing/
+- What happens if you build without a permit — and how do you fix it? — https://permitsbycounty.com/blog/building-without-a-permit-fix-it/
+- Which contractors are busiest in my territory right now? — https://permitsbycounty.com/blog/busiest-contractors-in-my-territory/
+- How do I get a certificate of occupancy after my final inspection passes? — https://permitsbycounty.com/blog/certificate-of-occupancy-after-final-inspection/
+- How do I check a house&rsquo;s permit history before I buy it? — https://permitsbycounty.com/blog/check-house-permit-history-before-buying/
+- How do I look up Chicago building permits and violations by address? — https://permitsbycounty.com/blog/chicago-building-permits-violations-by-address/
+- How do I close an open permit before I sell my house? — https://permitsbycounty.com/blog/close-open-permit-before-selling-house/
+- How do I close an open permit in Miami-Dade, Broward or Palm Beach County? — https://permitsbycounty.com/blog/close-open-permit-miami-dade-broward-palm-beach/
+- How long does a commercial building permit take in Houston, Dallas, Austin, Phoenix and Chicago? — https://permitsbycounty.com/blog/commercial-building-permit-time-five-cities/
+- Why did Dallas County's permit feed stop updating — and where can DFW subs track Dallas permits instead? — https://permitsbycounty.com/blog/dallas-building-permits-feed-dallasnow/
+- How can I track building permits by council district in Dallas? — https://permitsbycounty.com/blog/dallas-permits-by-council-district/
+- What permits do I need for a commercial tenant improvement in Dallas? — https://permitsbycounty.com/blog/dallas-tenant-improvement-permits/
+- Do I need a permit for a deck, pool, or fence — and what will it cost? — https://permitsbycounty.com/blog/deck-pool-fence-permit-cost/
+- Do I need a permit to install an EV charger — and how much does it cost? — https://permitsbycounty.com/blog/ev-charger-permit-cost/
+- How do I renew or revive an expired building permit? — https://permitsbycounty.com/blog/expired-building-permit-renewal/
+- What happens if my project fails a building inspection — and who pays to fix it? — https://permitsbycounty.com/blog/failed-building-inspection-who-pays/
+- How can contractors find jobs from newly issued building permits? — https://permitsbycounty.com/blog/find-jobs-from-newly-issued-building-permits/
+- How can subcontractors in Tarrant County get Fort Worth permits the day they&rsquo;re issued? — https://permitsbycounty.com/blog/fort-worth-permits-day-they-are-issued/
+- How can subcontractors get on a GC&rsquo;s bid list before a project goes to bid? — https://permitsbycounty.com/blog/gc-bid-list-before-project-goes-to-bid/
+- How many new homes are coming to the counties where I deliver? — https://permitsbycounty.com/blog/how-many-new-homes-coming-to-your-counties/
+- How much does a building permit cost? — https://permitsbycounty.com/blog/how-much-does-a-building-permit-cost/
+- How can real-estate investors use building permits to find flips before they list? — https://permitsbycounty.com/blog/investors-use-permits-find-flips-before-list/
+- How can I look up building permits by address for free? — https://permitsbycounty.com/blog/look-up-building-permits-by-address/
+- How do I check for open permits and violations on a New York City property before I buy? — https://permitsbycounty.com/blog/nyc-open-permits-check/
+- Can an open permit kill a closing — and how early should I search for one? — https://permitsbycounty.com/blog/open-permit-closing-search-early/
+- How do I find a property&rsquo;s permit history in Orange County, Florida? — https://permitsbycounty.com/blog/orange-county-florida-permit-history/
+- What does building-permit activity tell real estate investors about where to buy next? — https://permitsbycounty.com/blog/permit-activity-investors-where-to-buy-next/
+- How much does a permit expediter cost — and when is hiring one worth it? — https://permitsbycounty.com/blog/permit-expediter-cost/
+- How can I tell when a property last got a new roof or HVAC system from its permit history? — https://permitsbycounty.com/blog/permit-history-roof-replacement-hvac-age/
+- How can I research a builder before I bid their job? — https://permitsbycounty.com/blog/research-builder-permit-history/
+- How do I get a retroactive permit for work that is already done? — https://permitsbycounty.com/blog/retroactive-permit-work-already-done/
+- Do I need a permit to replace my roof? — https://permitsbycounty.com/blog/roof-replacement-permit/
+- How do I find roofing jobs from building permits in my county? — https://permitsbycounty.com/blog/roofing-jobs-from-building-permits/
+- Can I sell a house with open or expired permits in Florida? — https://permitsbycounty.com/blog/sell-house-open-expired-permits-florida/
+- Can you sell a house with unpermitted work? — https://permitsbycounty.com/blog/sell-house-with-unpermitted-work/
+- How do I find solar leads from building permits? — https://permitsbycounty.com/blog/solar-leads-from-building-permits/
+- How much does a solar permit cost — and do I need a separate permit for a panel upgrade? — https://permitsbycounty.com/blog/solar-permit-cost/
+- What should I do if I get a stop-work order? — https://permitsbycounty.com/blog/stop-work-order-what-to-do/
+- How can building-material suppliers find job sites before ground breaks? — https://permitsbycounty.com/blog/suppliers-find-job-sites-before-ground-breaks/
+- How can suppliers quote a job before the material order is placed? — https://permitsbycounty.com/blog/suppliers-quote-job-before-material-order/
+- How can I tell if a flip has unpermitted work before I make an offer? — https://permitsbycounty.com/blog/tell-if-flip-has-unpermitted-work/
+- Which Texas metros have the most swimming-pool permits right now? — https://permitsbycounty.com/blog/texas-metros-most-swimming-pool-permits/
+- How do I find pool, fence and deck permits in Travis County before my competitors do? — https://permitsbycounty.com/blog/travis-county-pool-fence-deck-permits/
+- Who is responsible for pulling a permit — the homeowner or the contractor? — https://permitsbycounty.com/blog/who-pulls-the-permit-homeowner-or-contractor/
