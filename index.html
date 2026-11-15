@@ -5209,6 +5209,33 @@
       .rm-state { font-size: 16px; color: var(--body); margin-top: 2px; }
       .rm-arrow { color: var(--teal); font-size: 24px; font-weight: 700; flex: none; align-self: center; }
 
+      /* ---------- County reports directory ---------- */
+      .county-reports { border-top: 1px solid var(--border); padding: 34px 0 58px; }
+      .county-reports h3 {
+        font-family: var(--serif);
+        font-weight: 800;
+        color: var(--navy);
+        font-size: 30px;
+        line-height: 1.18;
+        margin: 0 0 10px;
+      }
+      .county-reports-intro { font-size: 16.5px; line-height: 1.55; color: var(--muted); max-width: 720px; margin: 0 0 30px; }
+      .county-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 36px; }
+      .county-group h4 { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--teal); }
+      .county-group ul { list-style: none; margin: 0; padding: 0; }
+      .county-group li { margin: 0 0 9px; font-size: 16px; line-height: 1.4; }
+      .county-group a { color: var(--teal-dark); font-weight: 600; overflow-wrap: anywhere; }
+      .county-group a:hover { text-decoration: underline; text-underline-offset: 3px; }
+      @media (max-width: 900px) {
+        .county-reports { padding: 28px 0 44px; }
+        .county-reports h3 { font-size: 26px; }
+        .county-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 22px; }
+        .county-group li { font-size: 15.5px; }
+      }
+      @media (max-width: 520px) {
+        .county-groups { grid-template-columns: minmax(0, 1fr); }
+      }
+
       /* ---------- Digest band ---------- */
       .digest { background: var(--navy); color: #fff; }
       .digest-in {
@@ -5900,6 +5927,89 @@
             </span>
             <span class="rm-arrow">&rarr;</span>
           </a>
+        </div>
+
+        <div class="county-reports" id="county-reports">
+          <h3>County reports &mdash; free public records, updated daily</h3>
+          <p class="county-reports-intro">
+            All 23 live county reports are free to read &mdash; no signup needed. Pick your county
+            below to see its latest permits, trades, and monthly activity.
+          </p>
+          <div class="county-groups">
+            <div class="county-group">
+              <h4>California</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/ca/los-angeles/">Los Angeles County, CA</a></li>
+                <li><a href="https://permitsbycounty.com/ca/san-francisco/">San Francisco County, CA</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Texas</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/tx/travis/">Travis County (Austin), TX</a></li>
+                <li><a href="https://permitsbycounty.com/tx/tarrant/">Tarrant County (Fort Worth), TX</a></li>
+                <li><a href="https://permitsbycounty.com/tx/bexar/">Bexar County (San Antonio), TX</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Florida</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/fl/miami-dade/">Miami-Dade County, FL</a></li>
+                <li><a href="https://permitsbycounty.com/fl/orange/">Orange County (Orlando), FL</a></li>
+                <li><a href="https://permitsbycounty.com/fl/hillsborough/">Hillsborough County (Tampa), FL</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>New York</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/ny/new-york/">New York County (Manhattan), NY</a></li>
+                <li><a href="https://permitsbycounty.com/ny/kings/">Kings County (Brooklyn), NY</a></li>
+                <li><a href="https://permitsbycounty.com/ny/queens/">Queens County, NY</a></li>
+                <li><a href="https://permitsbycounty.com/ny/bronx/">Bronx County, NY</a></li>
+                <li><a href="https://permitsbycounty.com/ny/richmond/">Richmond County (Staten Island), NY</a></li>
+                <li><a href="https://permitsbycounty.com/ny/erie/">Erie County (Buffalo), NY</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Pennsylvania</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/pa/philadelphia/">Philadelphia County, PA</a></li>
+                <li><a href="https://permitsbycounty.com/pa/allegheny/">Allegheny County (Pittsburgh), PA</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Illinois</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/il/cook/">Cook County (Chicago), IL</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Ohio</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/oh/franklin/">Franklin County (Columbus), OH</a></li>
+                <li><a href="https://permitsbycounty.com/oh/cuyahoga/">Cuyahoga County (Cleveland), OH</a></li>
+                <li><a href="https://permitsbycounty.com/oh/hamilton/">Hamilton County (Cincinnati), OH</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Georgia</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/ga/dekalb/">DeKalb County (Decatur), GA</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>North Carolina</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/nc/wake/">Wake County (Raleigh), NC</a></li>
+              </ul>
+            </div>
+            <div class="county-group">
+              <h4>Michigan</h4>
+              <ul>
+                <li><a href="https://permitsbycounty.com/mi/wayne/">Wayne County (Detroit), MI</a></li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </section>
