@@ -13,7 +13,7 @@ from trades import (classify_boston_trade, classify_br_trade,
                     classify_dekalb_trade,
                     classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
-                    classify_hillsborough_trade, classify_miami_trade, classify_orlando_trade,
+                    classify_hillsborough_trade, classify_miami_trade, classify_marin_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
                     classify_raleigh_trade, classify_sa_trade,
                     classify_trade, classify_nyc_trade,
@@ -1822,6 +1822,123 @@ def normalize_buffalo(raw, reg):
     }
 
 
+def _marin_contractor(v):
+    """Marin contractor of record, privacy-filtered (registry rule).
+
+    The county's OWNER / OWNER/BUILDER tokens mark an owner-built
+    permit — an owner is not a contractor business, so they store as
+    NULL. Everything else the county publishes in this field is the
+    contractor business of record (55 names sampled at audit, all
+    firms); it is carried as published.
+    """
+    s = _clean(v)
+    if not s or s.upper() in ("OWNER", "OWNER/BUILDER", "OWNER BUILDER"):
+        return None
+    return s
+
+
+def _marin_address(raw_addr, city, zipcode):
+    """Strip the ', CITY, CA ZIP' suffix Marin repeats inside address.
+
+    The address field carries the full postal address; city and ZIP
+    are stored in their own fields, so the repeated suffix is removed
+    (only when it matches the row's own city/ZIP). Title-cased when it
+    arrives all-caps (the Buffalo treatment).
+    """
+    addr = _clean(raw_addr)
+    if not addr:
+        return None
+    if city and zipcode:
+        suffix = f", {city}, CA {zipcode}"
+        if addr.upper().endswith(suffix.upper()):
+            addr = addr[: -len(suffix)].rstrip()
+    else:
+        addr = re.sub(r",\s*[A-Za-z .'-]+,\s*CA\s+\d{5}(-\d{4})?$", "",
+                      addr).rstrip()
+    if addr.isupper():
+        addr = _title(addr)
+    return addr
+
+
+def _marin_desc(raw):
+    """Marin's scope text: description, else construction, else fee title.
+
+    The county publishes a free-text description on about a third of
+    window permits; for the rest, its construction component list is
+    the scope statement it publishes (and its fee schedule title is
+    the last fallback). Whitespace and the component list's padding
+    are normalized; the text is otherwise as published.
+    """
+    for v in (raw.get("description"), raw.get("construction"),
+              raw.get("fee_code_title")):
+        s = _clean(v)
+        if s:
+            s = re.sub(r"\s+", " ", s).strip(" ;")
+            return s or None
+    return None
+
+
+def _marin_category(type_permit):
+    t = (_clean(type_permit) or "").upper()
+    if t == "RESIDENTIAL":
+        return "Residential"
+    if t == "COMMERCIAL":
+        return "Commercial"
+    return None
+
+
+def normalize_marin(raw, reg):
+    """One raw Marin County row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): permit_number is exactly unique
+    in the trailing-12-month window (4,204 rows = 4,204 distinct
+    permit_number = 4,204 distinct permit_tracking_id, measured
+    2026-11-16 on the full pull) — source_record_id = permit_number,
+    no collapsing. The window is the issued_date window: a row enters
+    only by carrying an issued date, so status is 'issued' by
+    construction (the dataset publishes no status field). Privacy:
+    the pull is column-restricted by the registry pull_select — no
+    applicant or property-owner field is ever requested; the only
+    name carried is the county's contractor of record, with its
+    OWNER / OWNER-BUILDER tokens stored as NULL (see
+    _marin_contractor). Valuation: construction_value PASSED
+    validation on the full window (registry field_map.valuation —
+    stated on 100% of permits, same-address/same-value restatement
+    bounds at 0.2%), so values publish as reported. Category: the
+    county's own type_permit class (RESIDENTIAL / COMMERCIAL).
+    """
+    sid = _clean(raw.get("permit_number"))
+    if not sid:
+        return None
+    city_raw = _clean(raw.get("city_town_inferred")) or _clean(raw.get("city_town"))
+    city = _title(city_raw) if city_raw and city_raw.isupper() else city_raw
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": _marin_address(raw.get("address"), city_raw,
+                                  _clean(raw.get("zipcode"))),
+        "city": city,
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(raw.get("zipcode")),
+        "permit_type": _clean(raw.get("permit_category")),
+        "trade": classify_marin_trade(raw.get("construction"),
+                                      raw.get("fee_code_title"),
+                                      raw.get("description")),
+        "category": _marin_category(raw.get("type_permit")),
+        "project_description": _marin_desc(raw),
+        "valuation": _num(raw.get("construction_value")),
+        "status": "issued",
+        "status_source": None,
+        "application_date": _date(raw.get("received_date")),
+        "issue_date": _date(raw.get("issued_date")),
+        "source_updated_date": None,
+        "contractor_name": _marin_contractor(raw.get("contractor")),
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1848,5 +1965,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "los-angeles-ca": normalize_la,
                "columbus-franklin-oh": normalize_columbus,
                "cleveland-cuyahoga-oh": normalize_cleveland,
-               "buffalo-erie-ny": normalize_buffalo}
+               "buffalo-erie-ny": normalize_buffalo,
+               "marin-ca": normalize_marin}
 

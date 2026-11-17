@@ -1241,3 +1241,106 @@ def classify_buffalo_trade(aptype="", description=""):
             _re.search(r"\bDEMOLISH|DEMOLITION|RAZE", d):
         return "demolition"
     return "general"
+
+
+_MARIN_TOKEN_TRADES = {
+    "reroofing": "roofing",
+    "service upgrade": "electrical",
+    "replace circuits / outlets": "electrical",
+    "new circuits / outlets": "electrical",
+    "ev charging station": "electrical",
+    "replace plumbing fixtures(s)": "plumbing",
+    "new plumbing fixture(s)": "plumbing",
+    "new gas service": "plumbing",
+    "replace mechanical appliance": "hvac",
+    "mechanical appliance": "hvac",
+    "replace ductwork": "hvac",
+    "new ductwork": "hvac",
+}
+
+
+def classify_marin_trade(construction="", fee_code_title="", description=""):
+    """Marin County (Marin County Socrata 'Building Permit') classification.
+
+    Marin publishes a small, closed vocabulary of construction
+    components (16 distinct tokens measured on the full trailing-12-
+    month window, 2026-11-16) — the county's own scope statement for
+    each permit. Classification is, in order:
+
+    * the FIRST trade-bearing construction token, in the county's own
+      listing order (ReRoofing -> roofing; Service Upgrade / Circuits /
+      EV Charging Station -> electrical; Plumbing Fixtures / Gas
+      Service -> plumbing; Mechanical Appliance / Ductwork -> hvac).
+      The 'With Electronic Inspection' token is an inspection modifier,
+      never a trade; door/window, siding, and stucco tokens name no
+      licensed trade and fall through.
+    * the county's fee schedule title, where it names a trade family
+      outright (Demolition, Electrical Permits, Plumbing/Gas Permits,
+      Mechanical Permits, PV & Thermal / solar titles, Pool/Spa,
+      Reroofing) or a new dwelling (Single Family Dwellings - New,
+      Multi-family - New, 2nd Unit (ADU) titles).
+    * unambiguous scope signals in the permit's own description
+      (new dwelling / rebuild first, then solar, demolition, roofing,
+      plumbing, hvac, electrical, pool, and word-bounded sign forms —
+      plain 'sign' substring matching is NOT used: it fires inside
+      'Design' and 'Assigned').
+    * everything else names no single licensed trade -> general.
+
+    Simulated on the coordinator's full window pull before build
+    (2026-11-16, 4,204 rows) and reproduced exactly by production:
+    general 1,261 · electrical 965 · roofing 817 · hvac 523 ·
+    plumbing 384 · solar 89 · new-construction 88 · pool 48 ·
+    demolition 26 · signage 3.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    import re as _re
+    toks = [t.strip().lower()
+            for t in _re.split(r"[;,]", construction or "") if t.strip()]
+    for t in toks:
+        if t in _MARIN_TOKEN_TRADES:
+            return _MARIN_TOKEN_TRADES[t]
+    f = (fee_code_title or "").lower()
+    if "demolition" in f:
+        return "demolition"
+    if "electrical permits" in f:
+        return "electrical"
+    if "plumbing/gas permits" in f:
+        return "plumbing"
+    if "mechanical permits" in f:
+        return "hvac"
+    if "solar" in f or "pv & thermal" in f:
+        return "solar"
+    if "pool, spa" in f:
+        return "pool"
+    if "reroofing" in f:
+        return "roofing"
+    if ("single family dwellings - new" in f or "multi-family - new" in f
+            or "2nd unit (adu)" in f):
+        return "new-construction"
+    d = (description or "").lower()
+    if not d:
+        return "general"
+    if _re.search(r"new (sfd|dwelling|single.family|home|residence)|"
+                  r"rebuild|new adu|accessory dwelling", d):
+        return "new-construction"
+    if "solar" in d or "photovoltaic" in d or _re.search(r"\bpv\b", d):
+        return "solar"
+    if "demolition" in d or "demolish" in d:
+        return "demolition"
+    if ("reroof" in d or "re-roof" in d or "roof replacement" in d
+            or "new roof" in d):
+        return "roofing"
+    if _re.search(r"water heater|repipe|sewer|plumbing", d):
+        return "plumbing"
+    if _re.search(r"furnace|hvac|air condition|heat pump|ductwork|"
+                  r"mini.?split", d):
+        return "hvac"
+    if _re.search(r"electrical|panel upgrade|service upgrade|ev charger|"
+                  r"charger", d):
+        return "electrical"
+    if _re.search(r"\bpool\b|hot tub|\bspa\b", d):
+        return "pool"
+    if _re.search(r"\bsignage\b|\bsigns?\b", d):
+        return "signage"
+    return "general"

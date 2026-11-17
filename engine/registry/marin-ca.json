@@ -1,0 +1,68 @@
+{
+ "api_base": "https://data.marincounty.gov/resource/mkbn-caye.json",
+ "audit_2026_11_16": "FRESH AUDIT PASSED (first-hand, 2026-11-16) \u2014 post-WAVE1 order worked in the 2026-11-16 candidate probes: City of Riverside CA export still capped (dataset page live, no restored export surfaced); Greensboro NC closed connections a fourth straight run (unverifiable, no verdict); Sonoma County CA feed is dead (max issued 2025-05-30, TTM 0 \u2014 SKIP); Roseville/Placer County CA publishes no address, ZIP, or description fields at all (SKIP, the Durham failure shape); Corona/Riverside County CA is a thin city register (TTM 3,276, dataset stamp a month old); Collin County TX (appraisal-district compilation) carries 212 duplicate permitids and a year-2206 junk date in-window; Marin County CA passed. (1) Dataset 'Building Permit' mkbn-caye (Marin County open data, publisher Marin County): 51,653 rows all-time (2014\u2013present per the dataset description, which states data is updated daily); rowsUpdatedAt 2026-11-16T08:31:18Z on audit day. (2) VOLUME STABILITY by issued year: 3,947 (2020) / 4,908 / 4,225 / 4,506 / 4,081 / 4,566 (2025) / 3,705 (2026 YTD) \u2014 no collapse; TTM full months run 272\u2013407. (3) IDENTITY on the full paged TTM pull (issued_date >= 2025-11-16, saved as marin-window-pull.json in the run folder): 4,204 rows = 4,204 distinct permit_number = 4,204 distinct permit_tracking_id \u2014 one row per permit. September 2026 cross-check figure: 386 permits; October 2026: 391; latest issued 2026-11-14. (4) VALUATION PASSED \u2014 values publish (see field_map.valuation). (5) Terms: the dataset is published on Marin County's official open-data portal for public reuse; figures published 'as reported by Marin County' with attribution; no endorsement implied. Audit evidence: ~/workspace/goals/permitsbycounty/hidden_files/expansion-2026-11-16/.",
+ "county": "Marin County",
+ "county_fips": "06041",
+ "county_slug": "ca/marin",
+ "coverage_note": "Building permits processed by Marin County (Community Development Agency) \u2014 the county's own permitting jurisdiction, including unincorporated Marin and the county-served areas inside its cities and towns. Marin's incorporated cities also run their own permit counters for work outside the county's jurisdiction; those permits are not in this feed.",
+ "dataset_id": "mkbn-caye",
+ "date_onboarded": "2026-11-16",
+ "dedupe_rule": {
+  "definition": "One published permit = one permit_number in Marin County's Building Permit dataset. The dataset's grain is one row per permit: no collapsing applies or is needed.",
+  "measurement": "Trailing-12-month window (issued_date >= 2025-11-16), measured 2026-11-16 on the full paged pull saved as audit evidence: 4,204 rows = 4,204 distinct permit_number = 4,204 distinct permit_tracking_id, 0 duplicates. The pipeline's in-batch duplicate gate and the (county_id, source_record_id) upsert key guard every future pull."
+ },
+ "field_map": {
+  "address": "address, as published (the full street address; the trailing ', CITY, CA ZIP' suffix the field repeats is stripped at normalization since city and ZIP are carried in their own fields; present on 4,204 of 4,204 window permits; title-cased at normalization).",
+  "application_date": "received_date (the date the county received the application; published on all 4,204 window permits).",
+  "category": "type_permit, the county's own class: RESIDENTIAL = Residential (3,948 window permits), COMMERCIAL = Commercial (256).",
+  "contractor_rule": "contractor, the county's published contractor of record (present on 4,158 of 4,204 window permits). Sampled 55 names at audit: all are business names (firms, LLCs, INCs) or the county's own OWNER / OWNER/BUILDER tokens, which mark an owner-built permit \u2014 the tokens are stored as NULL because an owner is not a contractor business. No applicant or property-owner field is requested at all.",
+  "issue_date": "issued_date. The window is defined on it: rows without an issued date are applications the county has not issued and stay outside the window by construction (2,726 all-time rows carry no issued date).",
+  "permit_number": "permit_number \u2014 verified exactly unique in the trailing-12-month window (4,204 distinct = 4,204 rows, 2026-11-16 audit). permit_tracking_id is equally unique and is carried in the pull for the identity cross-check.",
+  "permit_type_source": "permit_category, the county's own work category (Maintenance 2,832 / All other Construction 699 / Minor Improvement 673 in the window). The dataset's permit_work_class field is an internal department-routing list and is never requested.",
+  "project_description": "description where the county publishes one (1,442 of 4,204 window permits); otherwise the county's own construction component list (e.g. 'ReRoofing; With Electronic Inspection'), which is the scope statement it publishes for its on-demand permits; otherwise its fee_code_title. 541 window permits publish none of the three and carry no description.",
+  "source_record_id": "permit_number (see permit_number).",
+  "status_source": "The dataset publishes no status field; a row enters the window only by carrying an issued date, so status is 'issued' for every record by construction; status_source stays NULL.",
+  "valuation": "construction_value, the county's stated construction value. PASSED validation on the full window (2026-11-16): stated on 100% of window permits (0 null; $0 on 30; $1 on 4; none negative); total $296,368,535; median positive value computed at build. Same-address + same-value groups above $10k bound any restatement excess at $584,172 = 0.2% of the total. The largest permit ($39,518,511, a major remodel of the Golden Gate Village housing complex in Sausalito, stated once) is 13.3% of the total \u2014 one real, named project whose full scope text prints alongside. Values publish as reported."
+ },
+ "history_range": "51,653 rows at audit (permits from January 1, 2014 to present per the dataset description); we backfill the trailing 12 months only (site rule).",
+ "jurisdiction": "Marin County",
+ "jurisdiction_label": "Marin County",
+ "license": "Marin County open-data portal (public reuse with attribution); attribution: County of Marin, California",
+ "order_tiebreak": "permit_number",
+ "pull_select": [
+  "permit_number",
+  "permit_tracking_id",
+  "issued_date",
+  "received_date",
+  "address",
+  "city_town_inferred",
+  "zipcode",
+  "construction_value",
+  "construction",
+  "description",
+  "type_permit",
+  "permit_category",
+  "fee_code_title",
+  "contractor"
+ ],
+ "qa_thresholds": {
+  "backfill_expected_volume_12mo": 4204,
+  "backfill_volume_tolerance": 0.25,
+  "freshness_max_age_hours": 48,
+  "valuation_max_plausible_usd": 2000000000
+ },
+ "rate_limit": "Socrata anonymous tier; paged pulls with polite pacing.",
+ "refresh_tier": 1,
+ "registry_status": "live",
+ "source_name": "Marin County open data \u2014 Building Permit (Community Development Agency)",
+ "source_type": "socrata",
+ "source_url": "https://data.marincounty.gov/d/mkbn-caye",
+ "state": "CA",
+ "status_map": {
+  "ISSUED": "issued"
+ },
+ "terms_status": "verified-open-2026-11-16: the dataset is published by Marin County on its official open-data portal (data.marincounty.gov) for public reuse; figures are published 'as reported by Marin County' with attribution; no endorsement is implied.",
+ "update_cadence": "Daily (the dataset description's own stated cadence; MEASURED 2026-11-16: rowsUpdatedAt 2026-11-16T08:31:18Z, same day as the audit, and newest issued_date 2026-11-14). Freshness (gate 5) is measured as the dataset's rowsUpdatedAt under a 48h threshold (the Socrata-county standard).",
+ "watermark_field": "issued_date + permit_number \u2014 refresh re-pulls by the issued_date watermark and upserts.",
+ "wave": "wave-2-metro"
+}

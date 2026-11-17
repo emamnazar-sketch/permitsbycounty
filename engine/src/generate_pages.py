@@ -141,6 +141,44 @@ CFG = {
                      'batch, so the freshest permits can run about a week behind the '
                      'calendar — the stamps above show the source\'s own dates.</p>'),
     },
+    "ca/marin": {
+        "registry": "marin-ca",
+        "state_name": "California", "state_abbr": "CA",
+        "county_name": "Marin County", "crumb_county": "Marin County, California",
+        "h1": "Building Permits in Marin County, California",
+        "city": "San Rafael",
+        "source_short": "County of Marin",
+        "source_line": "Marin County open data — building permits processed by the Marin County Community Development Agency",
+        "creator": "County of Marin",
+        "cite_place": "Marin County",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Marin's construction value passed validation on the full
+        # window (registry field_map.valuation — stated on 100% of
+        # permits, same-address/same-value restatement bounds at 0.2%,
+        # DB sum verified against the source-side total): values
+        # publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is the county's own class for each permit: "
+                          "Residential permits are the county's RESIDENTIAL class "
+                          "and Commercial permits its COMMERCIAL class."),
+        "window_start": "2025-11-16",
+        "lede_hub": ("Every building permit processed by Marin County — counted, "
+                     "valued, and sorted by trade. Free, and updated daily."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits '
+                     'processed by <strong>Marin County</strong> (Community Development '
+                     'Agency) — the county\'s own permitting jurisdiction, which '
+                     'includes unincorporated Marin and the county-served areas '
+                     'inside its cities and towns, from Mill Valley and San Rafael '
+                     'to Point Reyes Station. Marin\'s incorporated cities also run '
+                     'their own permit counters for work outside the county\'s '
+                     'jurisdiction; those permits are not in this feed, so totals '
+                     'here are Marin County totals — labeled as such, never blended. '
+                     'The dataset carries one row for every permit, so each permit '
+                     'is counted <strong>once</strong>, by its permit number. The '
+                     'value the county states for a permit is its stated '
+                     'construction value for the work the permit covers, published '
+                     'here as reported.</p>'),
+    },
     "wa/king": {
         "registry": "seattle-king-wa",
         "state_name": "Washington", "state_abbr": "WA",
@@ -1486,6 +1524,9 @@ GUIDE_LINKS = {
     ],
     "ny/erie": [
         ("What permit activity tells real estate investors about where to buy next", "permit-activity-investors-where-to-buy-next"),
+    ],
+    "ca/marin": [
+        ("Who are the busiest contractors in my territory?", "busiest-contractors-in-my-territory"),
     ],
     "mi/wayne": [
         ("Who are the busiest contractors in my territory?", "busiest-contractors-in-my-territory"),
