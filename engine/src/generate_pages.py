@@ -758,6 +758,45 @@ CFG = {
                      'single-family homes at 95 million dollars and more, so this report publishes '
                      'permit counts, not a dollar total that would misstate the work.</p>'),
     },
+    "fl/alachua": {
+        "registry": "alachua-fl",
+        "state_name": "Florida", "state_abbr": "FL",
+        "county_name": "Alachua County", "crumb_county": "Alachua County, Florida",
+        "h1": "Building Permits in Alachua County, Florida",
+        "city": "Gainesville",
+        "source_short": "Alachua County",
+        "source_line": "Alachua County open data — building permits issued by Alachua County Growth Management",
+        "creator": "Alachua County",
+        "cite_place": "Alachua County",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Alachua's layer carries no cost or valuation field at all
+        # (registry field_map.valuation), so the county runs
+        # counts-only by construction (the Philadelphia treatment):
+        # the normalizer carries no valuation.
+        "show_valuation": False, "show_category": False,
+        "window_start": "2025-11-18",
+        "lede_hub": ("Every building permit issued by Alachua County — counted and "
+                     "sorted by trade and month. Free, and updated nightly."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by '
+                     '<strong>Alachua County</strong> — the permits the county itself '
+                     'issues, for unincorporated Alachua County and county-served areas. '
+                     'The City of Gainesville and the county\'s other cities issue their '
+                     'own permits through their own systems and they are not in this '
+                     'feed, so totals here are county-issued totals — labeled as such, '
+                     'never blended. Three facts about the county\'s data shape the '
+                     'figures. The county\'s layer carries no project-cost field at '
+                     'all, so this report publishes permit counts, trades, and monthly '
+                     'volumes only — there is no dollar figure to report. The layer '
+                     'also publishes no city or ZIP for a permit, so addresses appear '
+                     'exactly as the county prints them, with nothing added. And the '
+                     'register includes a few record types that authorize no '
+                     'construction — zoning-verification letters, pre-application '
+                     'screenings, development-review and land-use applications, '
+                     'public-works administrative reviews, and temporary-use permits '
+                     '(92 permits in the last 12 months) — those are left out of this '
+                     'report and named here, so the counts cover permits for physical '
+                     'work only.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",
@@ -1490,6 +1529,9 @@ GUIDE_LINKS = {
         ("Can I sell a house with open or expired permits in Florida?", "sell-house-open-expired-permits-florida"),
     ],
     "fl/hillsborough": [
+        ("Can I sell a house with open or expired permits in Florida?", "sell-house-open-expired-permits-florida"),
+    ],
+    "fl/alachua": [
         ("Can I sell a house with open or expired permits in Florida?", "sell-house-open-expired-permits-florida"),
     ],
     "il/cook": [

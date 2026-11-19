@@ -1344,3 +1344,75 @@ def classify_marin_trade(construction="", fee_code_title="", description=""):
     if _re.search(r"\bsignage\b|\bsigns?\b", d):
         return "signage"
     return "general"
+
+
+def classify_alachua_trade(permit_type="", sub_type=""):
+    """Alachua County (Alachua County BuildingPermitsCS layer) classification.
+
+    The county names its permit families directly (Permit_Type) and
+    refines them with Sub_Type. Classification is, in order:
+
+    * unambiguous Sub_Type signals that cut across families first:
+      Demolition -> demolition; Solar* (roof/ground/water-heating)
+      -> solar; Generator -> generator (standby-generator installs
+      ride on Electrical Permits here, 116 window permits — the
+      Baton Rouge treatment of a distinct generator family); Fire
+      Alarm -> fire-alarm; the sprinkler/suppression sub-types ->
+      fire-protection; Foundation Permit -> foundation (a Building
+      Permit sub-type, 136 window permits — the San Antonio
+      treatment of a distinct foundation family).
+    * the licensed-trade families outright (Mechanical -> hvac,
+      Roofing -> roofing, Electrical -> electrical, Plumbing ->
+      plumbing, Gas -> gas, Pool/Spa -> pool, Fire -> fire-protection,
+      Sign -> signage, Demolition Permit -> demolition). The family
+      beats a 'New Construction' sub-type: a Gas Permit's new-
+      construction sub-type is a gas line for a new building, not a
+      new-construction permit (the Cleveland precedence).
+    * new construction where the permit itself is the build:
+      Building Permits and Accessory Dwelling Unit permits whose
+      Sub_Type is 'New Construction', and every Accessory Dwelling
+      Unit permit (its sub-types are lot classes, Rural/Urban).
+    * everything else -> general: Building Permit alteration families
+      (windows, doors, accessory structures, manufactured-home setups,
+      aluminum work), Irrigation Approvals, Right-of-Way
+      Connection/Use, Tree Removal, Construction Permits, and
+      Temporary Tent Permits — real county permits that name no
+      single licensed trade.
+
+    Simulated on the coordinator's full scoped-window pull before
+    build (2026-11-18, 8,702 rows; pairs in alachua-classifier-sim.txt)
+    and reproduced exactly by production: general 3,005 · hvac 1,556 ·
+    roofing 1,433 · new-construction 722 · plumbing 570 · electrical
+    543 · gas 257 · foundation 136 · generator 116 · pool 99 ·
+    demolition 88 · solar 65 · signage 50 · fire-protection 37 ·
+    fire-alarm 25.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    pt = (permit_type or "").strip()
+    st = (sub_type or "").strip()
+    if st == "Demolition" or pt == "Demolition Permit":
+        return "demolition"
+    if st.startswith("Solar"):
+        return "solar"
+    if st == "Generator":
+        return "generator"
+    if st == "Fire Alarm":
+        return "fire-alarm"
+    if st in ("Fire Sprinkler", "Fire Sprinkler Underground",
+              "Pre-Engineered Suppression System", "Fire Suppression System",
+              "Underground Fire Main", "Underground Petroleum Tanks"):
+        return "fire-protection"
+    if st == "Foundation Permit":
+        return "foundation"
+    fam = {"Mechanical Permit": "hvac", "Roofing Permit": "roofing",
+           "Electrical Permit": "electrical", "Plumbing Permit": "plumbing",
+           "Gas Permit": "gas", "Pool/Spa Permit": "pool",
+           "Fire Permit": "fire-protection", "Sign Permit": "signage"}
+    if pt in fam:
+        return fam[pt]
+    if pt == "Accessory Dwelling Unit":
+        return "new-construction"
+    if pt == "Building Permit" and st == "New Construction":
+        return "new-construction"
+    return "general"

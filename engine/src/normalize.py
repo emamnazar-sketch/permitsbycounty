@@ -6,7 +6,7 @@ whose published role type contains 'CONTRACTOR' (a business role) are taken.
 """
 import re
 
-from trades import (classify_boston_trade, classify_br_trade,
+from trades import (classify_alachua_trade, classify_boston_trade, classify_br_trade,
                     classify_buffalo_trade,
                     classify_cincinnati_trade, classify_cleveland_trade,
                     classify_columbus_trade,
@@ -1939,6 +1939,78 @@ def normalize_marin(raw, reg):
     }
 
 
+def normalize_alachua(raw, reg):
+    """One raw Alachua County row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the Permit number is exactly
+    unique in the scoped trailing-12-month window (8,702 rows =
+    8,702 distinct Permit, measured 2026-11-18 on the live layer) —
+    source_record_id = Permit, no collapsing. The window is the
+    IssueDate window, bounded at pull time to the trailing 12 months
+    ending at pull (registry pull_where_extra: IssueDate <=
+    CURRENT_TIMESTAMP — the layer's only two future-dated records
+    are legacy permits carrying junk 2029/2049 issue dates, outside
+    the window by definition and named in the registry) and scoped
+    to construction-authorizing permit families (the six excluded
+    administrative types are named and counted in the registry
+    field_map.scope_filter — the San Antonio treatment). Privacy:
+    the pull is column-restricted by the registry pull_select — the
+    applicant person name (ApplicanName) and the property-owner name
+    (OwnerName) are never requested at all, and ApplicantCompanyName
+    is never carried (despite its name it mixes businesses with
+    individual applicants; audit samples include plain person
+    names). The only name carried is LicensedContractorName, the
+    county's licensed contractor of record (640 of 8,702 window
+    permits; 50 sampled at audit — all businesses). Valuation: the
+    layer publishes NO cost field at all, so valuation stays NULL
+    and Alachua runs counts-only by construction (the Philadelphia
+    treatment). The layer publishes no city or ZIP field and no
+    residential/commercial class: city, zip, and category stay NULL,
+    never inferred (the Boston honest-NULL treatment). Dates arrive
+    as ArcGIS epoch milliseconds. Status is the permit's current
+    lifecycle status, mapped through status_map with the verbatim
+    value kept in status_source; every window record carries an
+    issue date, so post-issuance states (Closed, Finaled, Expired)
+    stay in the population (the Raleigh treatment).
+    """
+    sid = _clean(raw.get("Permit"))
+    if not sid:
+        return None
+    address = _clean(raw.get("FULLADDR"))
+    if address:
+        address = " ".join(address.split())
+        if address.isupper():
+            address = _title(address)
+    contractor = _clean(raw.get("LicensedContractorName"))
+    if contractor and contractor.isupper():
+        contractor = _title(contractor)
+    status_src = _clean(raw.get("Status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": None,  # layer publishes no city field; never inferred
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": None,  # layer publishes no ZIP field; never inferred
+        "permit_type": _clean(raw.get("Permit_Type")),
+        "trade": classify_alachua_trade(raw.get("Permit_Type"),
+                                        raw.get("Sub_Type")),
+        "category": None,  # layer publishes no building class (above)
+        "project_description": _clean(raw.get("WorkDescription")),
+        "valuation": None,  # no value field exists; counts-only (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": _epoch_ms_date(raw.get("ApplicationDate")),
+        "issue_date": _epoch_ms_date(raw.get("IssueDate")),
+        "source_updated_date": None,  # layer publishes no per-row load stamp
+        "contractor_name": contractor,
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -1966,5 +2038,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "columbus-franklin-oh": normalize_columbus,
                "cleveland-cuyahoga-oh": normalize_cleveland,
                "buffalo-erie-ny": normalize_buffalo,
-               "marin-ca": normalize_marin}
+               "marin-ca": normalize_marin,
+               "alachua-fl": normalize_alachua}
 
