@@ -66,7 +66,8 @@ def count_where(api_base, layer, where):
     return int(json.loads(body)["count"])
 
 
-def dataset_updated_at(api_base, layer, freshness_stamp_field=None):
+def dataset_updated_at(api_base, layer, freshness_stamp_field=None,
+                       freshness_stamp_where=None):
     """Freshness measure for ArcGIS registries: the layer's own
     editingInfo.dataLastEditDate (epoch ms) — the source's stamp of when
     its data last changed. Returns (datetime UTC, service-layer name).
@@ -74,14 +75,19 @@ def dataset_updated_at(api_base, layer, freshness_stamp_field=None):
     A registry may instead set `freshness_stamp_field` for a layer that
     publishes no editingInfo stamp (DeKalb County, measured 2026-11-02):
     freshness is then the freshest value of that field in the table —
-    the Philadelphia/Carto treatment, measured on the source itself."""
+    the Philadelphia/Carto treatment, measured on the source itself.
+    A registry may additionally set `freshness_stamp_where` to bound
+    that statistic (New Hanover County, measured 2026-11-20: the raw
+    max ISSUE_DATE is a legacy permit's junk 2027 date, so the stamp is
+    the freshest ISSUE_DATE at or before the pull moment)."""
     meta = _layer_meta(api_base, layer)
     if freshness_stamp_field:
         stats = json.dumps([{"statisticType": "max",
                              "onStatisticField": freshness_stamp_field,
                              "outStatisticFieldName": "mx"}])
         body = _request(_query_url(api_base, layer,
-                                   {"where": "1=1", "outStatistics": stats,
+                                   {"where": freshness_stamp_where or "1=1",
+                                    "outStatistics": stats,
                                     "f": "json"}))
         ms = json.loads(body)["features"][0]["attributes"]["mx"]
         dt = datetime.fromtimestamp(ms / 1000, timezone.utc)

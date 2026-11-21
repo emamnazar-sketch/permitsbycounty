@@ -611,6 +611,49 @@ CFG = {
                      'not on its trade permits, so the reported value below is the building '
                      'permits\' stated total.</p>'),
     },
+    "nc/new-hanover": {
+        "registry": "new-hanover-nc",
+        "state_name": "North Carolina", "state_abbr": "NC",
+        "county_name": "New Hanover County", "crumb_county": "New Hanover County, North Carolina",
+        "h1": "Building Permits in New Hanover County, North Carolina",
+        "city": "Wilmington",
+        "source_short": "New Hanover County",
+        "source_line": "New Hanover County open data — building permits",
+        "creator": "New Hanover County",
+        "cite_place": "New Hanover County",
+        "noun": "building permits", "noun_singular": "building permit",
+        # New Hanover's VALUATION field is a whole-project figure
+        # restated on every sibling permit (registry
+        # field_map.valuation — $4.80B of the $6.73B window sum is
+        # restatement), so it is never pulled and the county runs
+        # counts-only (the Austin/Seattle decision): the normalizer
+        # carries no valuation.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is read from the county's own permit-type "
+                          "prefix (Residential / Commercial); permit types that "
+                          "name neither carry no category."),
+        "window_start": "2025-11-20",
+        "lede_hub": ("Every building permit issued by New Hanover County — counted and "
+                     "sorted by trade and month. Free, and updated nightly."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by '
+                     '<strong>New Hanover County</strong> — the county\'s own permit register, '
+                     'which covers Wilmington, Carolina Beach, Wrightsville Beach, Kure Beach, '
+                     'Castle Hayne, and the unincorporated county, so totals here are the county '
+                     'register\'s totals — labeled as such, never blended. Three facts about the '
+                     'county\'s data shape the figures. The county states one project value for a '
+                     'whole project and repeats that same figure on every separate permit the '
+                     'project pulls — one Wilmington hospital project\'s stated value sits, '
+                     'unchanged, on both its mechanical and its electrical permit — so a dollar total built '
+                     'from it would count the same project again and again; this report publishes '
+                     'permit counts, trades, and monthly volumes only. The register also carries '
+                     'record types that authorize no construction — county health-department '
+                     'operating licenses and inspections (food, lodging, pools, body art), fire '
+                     'operational permits, zoning permits, a facility license, and an occupancy '
+                     'certification (994 permits in the last 12 months) — those are left out of '
+                     'this report and named here, so the counts cover permits for physical work '
+                     'only. And two legacy permits in the register carry plainly wrong future '
+                     'issue dates (2027); they fall outside the window and are not counted.</p>'),
+    },
     "nc/wake": {
         "registry": "raleigh-wake-nc",
         "state_name": "North Carolina", "state_abbr": "NC",
@@ -1577,6 +1620,9 @@ GUIDE_LINKS = {
         ("Who are the busiest contractors in my territory?", "busiest-contractors-in-my-territory"),
     ],
     "nc/wake": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "nc/new-hanover": [
         ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
     ],
     "oh/cuyahoga": [

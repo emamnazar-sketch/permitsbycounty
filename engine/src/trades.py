@@ -1416,3 +1416,84 @@ def classify_alachua_trade(permit_type="", sub_type=""):
     if pt == "Building Permit" and st == "New Construction":
         return "new-construction"
     return "general"
+
+
+def classify_new_hanover_trade(permit_type="", work_class="", description=""):
+    """New Hanover County (county Building Permits layer) classification.
+
+    Three county signals, strongest first: the permit family
+    (PERMIT_TYPE, its 'NHC ' prefix stripped), the county's own
+    WORK_CLASS, and the scope text (DESCRIPTION) for the trades the
+    first two leave inside the generic Building/Trade families:
+
+    * demolition where the family or work class names it;
+    * EV Charger work class -> electrical (it beats the scope-text
+      solar pass: an EV-charger install by a solar-named firm is an
+      electrical permit); Solar Panel work class or a solar scope
+      -> solar;
+    * Commercial Sign family / Sign work class -> signage;
+    * the Building Safety Fire family (alarm, sprinkler and
+      extinguishing-system construction) -> fire-protection;
+    * the licensed-trade families and work classes outright:
+      Electrical -> electrical, Plumbing -> plumbing, gas piping and
+      gas appliances -> gas, Mechanical families and the Mechanical /
+      Mechanical HVAC work classes -> hvac (the county's trade-permit
+      register is mostly HVAC changeouts — 5,436 of its 11,264 trade
+      permits carry the Mechanical HVAC work class);
+    * new construction where the work class is the build itself
+      (NSFR, New);
+    * scope-text passes for the trades that ride on Building and
+      Accessory permits: roof-replacement phrasing -> roofing (the
+      bare word 'roof' was measured to catch porches and additions,
+      so only replacement phrasing counts), swimming pool -> pool,
+      foundation repair / helical piers -> foundation;
+    * everything else -> general: alterations and repairs naming no
+      single trade, accessory structures, additions, land-disturbance,
+      stormwater, floodplain and well/septic permits, changeouts and
+      relocations — real county permits that name no single licensed
+      trade.
+
+    Simulated on the coordinator's full scoped-window pull before
+    build (2026-11-20, 20,368 rows; sims in nhc-classifier-sim*.txt)
+    and reproduced exactly by production: hvac 7,814 · electrical
+    5,097 · general 2,766 · new-construction 1,894 · plumbing 1,618 ·
+    solar 214 · signage 214 · demolition 209 · gas 180 · pool 156 ·
+    fire-protection 124 · foundation 41 · roofing 41.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    import re
+    pt = (permit_type or "").strip()
+    if pt.startswith("NHC "):
+        pt = pt[4:]
+    wc = (work_class or "").strip()
+    d = (description or "").upper()
+    if "Demolition" in pt or wc == "Demolition":
+        return "demolition"
+    if wc == "EV Charger":
+        return "electrical"
+    if wc == "Solar Panel" or re.search(r"\bSOLAR\b", d):
+        return "solar"
+    if "Sign" in pt or wc == "Sign":
+        return "signage"
+    if pt.startswith("Building Safety Fire"):
+        return "fire-protection"
+    if "Electrical" in pt or wc == "Electrical":
+        return "electrical"
+    if "Plumbing" in pt or wc == "Plumbing":
+        return "plumbing"
+    if "Gas Piping" in pt or wc == "Gas Piping" or "Gas Appliances" in pt:
+        return "gas"
+    if "Mechanical" in pt or wc in ("Mechanical HVAC", "Mechanical"):
+        return "hvac"
+    if wc in ("NSFR", "New"):
+        return "new-construction"
+    if any(k in d for k in ("ROOF REPLACEMENT", "RE-ROOF", "REROOF",
+                            "NEW ROOF", "ROOFING REPLACEMENT",
+                            "REPLACE ROOF")):
+        return "roofing"
+    if "SWIMMING POOL" in d or re.search(r"\bPOOL\b", d):
+        return "pool"
+    if "FOUNDATION REPAIR" in d or "HELICAL PIER" in d:
+        return "foundation"
+    return "general"

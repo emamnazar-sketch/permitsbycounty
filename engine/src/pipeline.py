@@ -208,7 +208,8 @@ def main():
         ds_name = reg["dataset_id"]
         updated_dt, _layer_name = arcgis.dataset_updated_at(
             reg["api_base"], reg["arcgis_layer"],
-            freshness_stamp_field=reg.get("freshness_stamp_field"))
+            freshness_stamp_field=reg.get("freshness_stamp_field"),
+            freshness_stamp_where=reg.get("freshness_stamp_where"))
     else:
         updated_epoch, ds_name = socrata.dataset_updated_at(domain, reg["dataset_id"])
         updated_dt = datetime.fromtimestamp(updated_epoch, timezone.utc)

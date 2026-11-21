@@ -13,7 +13,7 @@ from trades import (classify_alachua_trade, classify_boston_trade, classify_br_t
                     classify_dekalb_trade,
                     classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
-                    classify_hillsborough_trade, classify_miami_trade, classify_marin_trade, classify_orlando_trade,
+                    classify_hillsborough_trade, classify_miami_trade, classify_marin_trade, classify_new_hanover_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
                     classify_raleigh_trade, classify_sa_trade,
                     classify_trade, classify_nyc_trade,
@@ -2011,6 +2011,115 @@ def normalize_alachua(raw, reg):
     }
 
 
+_NHC_CITY = {"WM": "Wilmington", "CB": "Carolina Beach",
+             "CH": "Castle Hayne", "WB": "Wrightsville Beach",
+             "KB": "Kure Beach"}
+
+
+def _nhc_address(raw):
+    """Assemble the county's address parts into one printed address.
+
+    The county publishes an address as parts (NUMBER, SUBNUM, DIR,
+    STREET, TYPE, UNIT). Parts are joined in that order and UNIT is
+    appended only when the county states one (its UNIT field is an
+    empty string on most rows). The county prints in all caps; the
+    assembled address is title-cased like the other counties'."""
+    parts = []
+    for f in ("NUMBER", "SUBNUM", "DIR", "STREET", "TYPE"):
+        v = _clean(raw.get(f))
+        if v:
+            parts.append(v)
+    addr = " ".join(parts)
+    unit = _clean(raw.get("UNIT"))
+    if unit:
+        addr = f"{addr} Unit {unit}" if addr else f"Unit {unit}"
+    if addr and addr.isupper():
+        addr = _title(addr)
+    return addr or None
+
+
+def normalize_new_hanover(raw, reg):
+    """One raw New Hanover County row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the PERMIT_NUMBER is exactly
+    unique in the scoped trailing-12-month window (20,368 rows =
+    20,368 distinct PERMIT_NUMBER, measured 2026-11-20 on the live
+    layer) — source_record_id = PERMIT_NUMBER, no collapsing. The
+    window is the ISSUE_DATE window, bounded at pull time to the
+    trailing 12 months ending at pull (registry pull_where_extra:
+    ISSUE_DATE <= CURRENT_TIMESTAMP — the layer's only two
+    future-dated records are legacy permits carrying a junk 2027
+    issue date, outside the window by definition and named in the
+    registry) and scoped to construction-authorizing permit families
+    (the excluded operating-license/inspection types are named and
+    counted in the registry field_map.scope_filter — the
+    Alachua/San Antonio treatment). Privacy: the pull is
+    column-restricted by the registry pull_select — PROJECT_CONTACT
+    (an individual) and ASSIGNED_TO (county staff) are never
+    requested at all. The only name carried is GENERAL_CONTRACTOR,
+    the county's published licensed general contractor of record,
+    verbatim as printed, state license annotation included (75
+    sampled at audit — all licensed contractors or firms; no
+    owner-builder tokens exist in the field). Valuation: the layer's
+    VALUATION field is a whole-project figure restated on every
+    sibling permit (measured: $4.80B of the $6.73B window sum is
+    restatement) and is NOT requested in pull_select, so valuation
+    stays NULL and New Hanover runs counts-only (the Austin/Seattle
+    decision, enforced by construction like Alachua's). Category
+    comes from the county's own permit-type prefix (Residential /
+    Commercial); types naming neither stay NULL, never inferred.
+    City comes from the county's two-letter place code, expanded on
+    ZIP-code evidence measured at audit (registry field_map.city);
+    rows with no code stay NULL. Dates arrive as ArcGIS epoch
+    milliseconds. Status is the permit's current lifecycle status,
+    mapped through status_map with the verbatim value kept in
+    status_source; every window record carries an issue date, so
+    post-issuance states stay in the population (the Raleigh
+    treatment).
+    """
+    sid = _clean(raw.get("PERMIT_NUMBER"))
+    if not sid:
+        return None
+    ptype = _clean(raw.get("PERMIT_TYPE"))
+    category = None
+    if ptype:
+        if "Residential" in ptype:
+            category = "Residential"
+        elif "Commercial" in ptype:
+            category = "Commercial"
+    zipc = raw.get("ZIPCODE")
+    if isinstance(zipc, float) and zipc.is_integer():
+        zipc = str(int(zipc))
+    elif isinstance(zipc, (int,)):
+        zipc = str(zipc)
+    status_src = _clean(raw.get("PERMIT_STATUS"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": _nhc_address(raw),
+        "city": _NHC_CITY.get(_clean(raw.get("CITY")) or ""),
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(zipc),
+        "permit_type": ptype,
+        "trade": classify_new_hanover_trade(raw.get("PERMIT_TYPE"),
+                                            raw.get("WORK_CLASS"),
+                                            raw.get("DESCRIPTION")),
+        "category": category,
+        "project_description": _clean(raw.get("DESCRIPTION")),
+        "valuation": None,  # project-level field, never pulled (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": _epoch_ms_date(raw.get("APPLICATION_DATE")),
+        "issue_date": _epoch_ms_date(raw.get("ISSUE_DATE")),
+        "source_updated_date": None,  # layer publishes no per-row load stamp
+        "contractor_name": _clean(raw.get("GENERAL_CONTRACTOR")),
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -2039,5 +2148,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "cleveland-cuyahoga-oh": normalize_cleveland,
                "buffalo-erie-ny": normalize_buffalo,
                "marin-ca": normalize_marin,
-               "alachua-fl": normalize_alachua}
+               "alachua-fl": normalize_alachua,
+               "new-hanover-nc": normalize_new_hanover}
 
