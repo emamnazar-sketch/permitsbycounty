@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light" />
+<title>Request Your County | PermitsByCounty</title>
+<meta name="description" content="Don't see your county yet? Tell us which county you want covered and we'll email you if we open it. Requests show us which county to add next. Asking is free." />
+<link rel="canonical" href="https://permitsbycounty.com/request-county/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Request Your County | PermitsByCounty" />
+<meta property="og:description" content="Don't see your county yet? Tell us which county you want covered and we'll email you if we open it. Requests show us which county to add next. Asking is free." />
+<meta property="og:url" content="https://permitsbycounty.com/request-county/" />
+<meta property="og:image" content="https://permitsbycounty.com/assets/logo-full.jpg" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Request Your County | PermitsByCounty" />
+<meta name="twitter:description" content="Don't see your county yet? Tell us which county you want covered and we'll email you if we open it. Requests show us which county to add next. Asking is free." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{--navy:#102c40;--teal:#087f76;--teal-dark:#06685f;--bg:#f6f8f7;--ink:#000;--body:#000;--muted:#000;--border:#dfe7e3;--serif:"Playfair Display",Georgia,"Times New Roman",serif;--sans:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);color:var(--body);background:#fff;-webkit-font-smoothing:antialiased}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+header.site{background:#fff;border-bottom:1px solid #eef2f0}
+.header-in{display:flex;align-items:center;justify-content:space-between;height:78px;gap:16px}
+.logo{display:flex;align-items:center}
+.logo img.full-logo{height:47px;width:auto;mix-blend-mode:multiply}
+nav.main{display:flex;gap:26px;align-items:center}
+nav.main a{color:var(--body);font-weight:600;font-size:15.5px}
+nav.main a:hover{color:var(--teal);text-decoration:none}
+nav.main a.cta{background:var(--teal);color:#fff;border-radius:7px;padding:10px 18px}
+nav.main a.cta:hover{background:var(--teal-dark);color:#fff}
+main .wrap{max-width:1020px}
+.doc{padding-top:44px;padding-bottom:20px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#000;margin:0 0 12px}
+h1{font-family:var(--serif);font-weight:800;color:#000;font-size:44px;line-height:1.1;letter-spacing:-.015em;margin:0 0 14px}
+.lede{font-size:19px;line-height:1.55;color:var(--body);margin:0 0 8px}
+.stamp{font-size:14px;color:var(--muted);margin:0 0 6px}
+h2{font-family:var(--serif);font-weight:800;color:#000;font-size:27px;line-height:1.2;margin:34px 0 10px}
+p{font-size:16.5px;line-height:1.65;margin:0 0 14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:24px 0 6px}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
+.stat .num{font-family:var(--serif);font-weight:800;color:#000;font-size:32px;line-height:1.05}
+.stat .lab{font-size:14px;color:var(--muted);margin-top:5px}
+table.data{width:100%;border-collapse:collapse;margin:14px 0 8px;font-size:15.5px}
+table.data th{text-align:left;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);padding:8px 10px}
+table.data td{border-bottom:1px solid var(--border);padding:9px 10px;vertical-align:top}
+table.data td.n,table.data th.n{text-align:right;font-variant-numeric:tabular-nums}
+.cite{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:22px 0;font-size:15px}
+.qa{border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:12px 0}
+.qa h3{margin:0 0 6px;font-size:17.5px;color:#000}
+.qa p{margin:0;font-size:16px}
+.note{font-size:14.5px;color:var(--muted)}
+footer.site{background:#fff;border-top:1px solid #eef2f0;padding:24px 0 14px;margin-top:44px}
+.foot-in{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.word{font-family:var(--serif);font-weight:800;font-size:20px;color:#000;letter-spacing:-.01em;white-space:nowrap}
+.foot-links{display:flex;gap:10px;align-items:center;padding-top:8px;flex-wrap:wrap;justify-content:flex-end}
+.foot-links a{font-size:14.5px;font-weight:600;color:#000}
+.foot-links a:hover{color:var(--teal);text-decoration:none}
+.foot-links .dot{color:#000}
+.foot-line{text-align:center;color:#000;font-size:13.5px;margin:20px 0 4px}
+@media (max-width:760px){
+  .header-in{height:auto;padding-top:14px;padding-bottom:14px;flex-wrap:wrap}
+  nav.main{gap:16px;flex-wrap:wrap}
+  nav.main a{font-size:14.5px}
+  h1{font-size:32px}
+  .doc{padding-top:30px}
+  table.data{font-size:14px}
+  table.data td,table.data th{padding:7px 6px}
+  .foot-in{flex-direction:column}
+  .foot-links{justify-content:flex-start}
+}
+
+.req-form{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:22px;margin:22px 0}
+.req-form label{display:block;font-size:15px;font-weight:600;color:#000;margin:0 0 6px}
+.req-form input,.req-form select{width:100%;font:inherit;font-size:16.5px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#000;margin:0 0 16px}
+.req-form button{font:inherit;font-size:17px;font-weight:700;background:var(--teal);color:#fff;border:0;border-radius:8px;padding:14px 26px;cursor:pointer;width:100%}
+.req-form button:hover{background:var(--teal-dark)}
+.req-form button:disabled{opacity:.6;cursor:wait}
+.req-done{display:none;font-size:16.5px;line-height:1.55;margin:14px 0 0}
+.req-done.show{display:block}
+.county-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px 28px;margin:14px 0}
+.county-group h3{font-size:16px;margin:0 0 8px;color:#000}
+.county-group ul{list-style:none;margin:0;padding:0}
+.county-group li{font-size:15.5px;line-height:1.5;margin:0 0 5px}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WQTWYGZZKR"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-WQTWYGZZKR');
+</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap header-in">
+    <a class="logo" href="/" aria-label="PermitsByCounty home"><img class="full-logo" src="/assets/logo-full.jpg" alt="PermitsByCounty" /></a>
+    <nav class="main" aria-label="Main navigation">
+      <a href="/#report">Explore counties</a>
+      <a href="/data-sources">Our data</a>
+      <a href="/about">About</a>
+      <a class="cta" href="/#digest">Get the free digest</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="wrap doc">
+    <p class="eyebrow">County coverage</p>
+    <h1>Request your county</h1>
+    <p class="lede">We add counties one at a time, and requests decide the order. If your county is not covered yet, tell us where you work and we will email you if we open it.</p>
+    <p>We only open counties in our 10 focus states for now: California, Texas, Florida, New York, Pennsylvania, Illinois, Ohio, Georgia, North Carolina, and Michigan. You can still ask for a county in another state &mdash; we count every request, and the count is what makes the case for widening the map.</p>
+    <p>Asking is free, and everything on this site stays free to read. This list is only for county requests &mdash; we will not send you anything else.</p>
+
+    <form class="req-form" id="countyRequestForm" novalidate>
+      <label for="reqCounty">County name</label>
+      <input type="text" id="reqCounty" name="county" placeholder="For example: Dallas" autocomplete="off" />
+      <label for="reqState">State</label>
+      <select id="reqState" name="state">
+        <option value="">Pick a state</option>
+          <option value="California">California</option>
+          <option value="Texas">Texas</option>
+          <option value="Florida">Florida</option>
+          <option value="New York">New York</option>
+          <option value="Pennsylvania">Pennsylvania</option>
+          <option value="Illinois">Illinois</option>
+          <option value="Ohio">Ohio</option>
+          <option value="Georgia">Georgia</option>
+          <option value="North Carolina">North Carolina</option>
+          <option value="Michigan">Michigan</option>
+          <option value="Another state">Another state</option>
+      </select>
+      <label for="reqEmail">Your email</label>
+      <input type="email" id="reqEmail" name="email" placeholder="Your email address" autocomplete="email" />
+      <button type="submit" id="reqBtn">Request this county</button>
+      <p class="req-done" id="reqDone" role="status"></p>
+    </form>
+
+    <h2>Counties already covered</h2>
+    <p>These 26 counties are live today &mdash; no need to request them. Every report is free to read, no signup needed.</p>
+    <div class="county-groups">
+        <div class="county-group">
+          <h3>California</h3>
+          <ul>
+          <li><a href="/ca/los-angeles/">Los Angeles County, CA</a></li>
+          <li><a href="/ca/san-francisco/">San Francisco County, CA</a></li>
+          <li><a href="/ca/marin/">Marin County (San Rafael), CA</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Texas</h3>
+          <ul>
+          <li><a href="/tx/travis/">Travis County (Austin), TX</a></li>
+          <li><a href="/tx/tarrant/">Tarrant County (Fort Worth), TX</a></li>
+          <li><a href="/tx/bexar/">Bexar County (San Antonio), TX</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Florida</h3>
+          <ul>
+          <li><a href="/fl/miami-dade/">Miami-Dade County, FL</a></li>
+          <li><a href="/fl/orange/">Orange County (Orlando), FL</a></li>
+          <li><a href="/fl/hillsborough/">Hillsborough County (Tampa), FL</a></li>
+          <li><a href="/fl/alachua/">Alachua County (Gainesville), FL</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>New York</h3>
+          <ul>
+          <li><a href="/ny/new-york/">New York County (Manhattan), NY</a></li>
+          <li><a href="/ny/kings/">Kings County (Brooklyn), NY</a></li>
+          <li><a href="/ny/queens/">Queens County, NY</a></li>
+          <li><a href="/ny/bronx/">Bronx County, NY</a></li>
+          <li><a href="/ny/richmond/">Richmond County (Staten Island), NY</a></li>
+          <li><a href="/ny/erie/">Erie County (Buffalo), NY</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Pennsylvania</h3>
+          <ul>
+          <li><a href="/pa/philadelphia/">Philadelphia County, PA</a></li>
+          <li><a href="/pa/allegheny/">Allegheny County (Pittsburgh), PA</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Illinois</h3>
+          <ul>
+          <li><a href="/il/cook/">Cook County (Chicago), IL</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Ohio</h3>
+          <ul>
+          <li><a href="/oh/franklin/">Franklin County (Columbus), OH</a></li>
+          <li><a href="/oh/cuyahoga/">Cuyahoga County (Cleveland), OH</a></li>
+          <li><a href="/oh/hamilton/">Hamilton County (Cincinnati), OH</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Georgia</h3>
+          <ul>
+          <li><a href="/ga/dekalb/">DeKalb County (Decatur), GA</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>North Carolina</h3>
+          <ul>
+          <li><a href="/nc/wake/">Wake County (Raleigh), NC</a></li>
+          <li><a href="/nc/new-hanover/">New Hanover County (Wilmington), NC</a></li>
+          </ul>
+        </div>
+        <div class="county-group">
+          <h3>Michigan</h3>
+          <ul>
+          <li><a href="/mi/wayne/">Wayne County (Detroit), MI</a></li>
+          </ul>
+        </div>
+    </div>
+    <p class="note">Your county not on either list? That is exactly what the form above is for.</p>
+  </div>
+</main>
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-in">
+      <a class="logo" href="/" aria-label="PermitsByCounty home"><span class="word">PermitsByCounty</span></a>
+      <div class="foot-links">
+        <a href="/about">About</a><span class="dot">&middot;</span>
+        <a href="/data-sources">Data &amp; methodology</a><span class="dot">&middot;</span>
+        <a href="/corrections">Corrections</a><span class="dot">&middot;</span>
+        <a href="/privacy">Privacy</a><span class="dot">&middot;</span>
+        <a href="/terms">Terms</a><span class="dot">&middot;</span>
+        <a href="/contact">Contact</a>
+      </div>
+    </div>
+    <p class="foot-line">Independent public-record reporting. Not a government agency.</p>
+  </div>
+</footer>
+<script>
+(function () {
+  var form = document.getElementById("countyRequestForm");
+  var done = document.getElementById("reqDone");
+  var btn = document.getElementById("reqBtn");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var county = document.getElementById("reqCounty").value.trim();
+    var state = document.getElementById("reqState").value;
+    var email = document.getElementById("reqEmail").value.trim();
+    function say(msg) { done.textContent = msg; done.classList.add("show"); }
+    if (!county) { say("Tell us the county name first."); return; }
+    if (!state) { say("Pick the state your county is in."); return; }
+    if (!email || email.indexOf("@") < 1 || email.indexOf(".") < 0) { say("That email doesn't look right \u2014 check it and try again."); return; }
+    var label = county.replace(/\s+county$/i, "") + " County, " + state;
+    btn.disabled = true; btn.textContent = "Sending\u2026";
+    fetch("/api/digest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, county: label + " (requested)", trade: "county-request" })
+    })
+      .then(function (res) { return res.json().catch(function () { return {}; }).then(function (data) { return { status: res.status, data: data }; }); })
+      .then(function (r) {
+        if (r.data && r.data.ok === true) {
+          form.querySelectorAll("input, select, button").forEach(function (el) { el.disabled = true; });
+          say(r.data.already
+            ? "You're already on our list \u2014 thanks. " + label + " is noted here as requested."
+            : "Got it \u2014 " + label + " is on the request list. If we open it, you'll hear from us at " + email + ".");
+        } else if (r.status === 400) {
+          say("That email doesn't look right \u2014 check it and try again.");
+        } else {
+          say("Something went wrong on our side \u2014 please try again in a minute.");
+        }
+      })
+      .catch(function () { say("Something went wrong on our side \u2014 please try again in a minute."); })
+      .then(function () { btn.disabled = false; btn.textContent = "Request this county"; });
+  });
+})();
+</script>
+</body>
+</html>
