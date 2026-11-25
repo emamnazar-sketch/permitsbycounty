@@ -840,6 +840,51 @@ CFG = {
                      'report and named here, so the counts cover permits for physical '
                      'work only.</p>'),
     },
+    "il/dupage": {
+        "registry": "naperville-dupage-il",
+        "state_name": "Illinois", "state_abbr": "IL",
+        "county_name": "DuPage County", "crumb_county": "DuPage County, Illinois",
+        "h1": "Building Permits in DuPage County, Illinois",
+        "city": "Naperville",
+        "source_short": "City of Naperville",
+        "source_line": "City of Naperville open data — building permits issued by the City of Naperville",
+        "creator": "City of Naperville",
+        "cite_place": "DuPage County (Naperville)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Naperville's PERMITVALUATION passed validation on the full
+        # status-scoped window (registry field_map.valuation — stated
+        # on 100% of permits, only 2 at exactly $1, largest permit
+        # 4.9% of the sum, DB sum verified against the source-side
+        # total): values publish.
+        "show_valuation": True, "show_category": True,
+        "category_note": ("Category is read from the city's own permit type first "
+                          "(Residential / Commercial), then from the work class's "
+                          "RESD / COMMERCIAL prefix; permits naming neither carry "
+                          "no category."),
+        "window_start": "2025-11-24",
+        "lede_hub": ("Every building permit issued by the City of Naperville — counted, "
+                     "valued, and sorted by trade. Free, and updated as the city "
+                     "releases new data."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Naperville</strong>. Naperville straddles DuPage and Will '
+                     'counties, and the city publishes its permit register as one — so totals '
+                     'here are City of Naperville totals, labeled as such, never blended. Other '
+                     'DuPage County jurisdictions (Wheaton, Downers Grove, Elmhurst, and the '
+                     'county\'s own unincorporated permitting) publish their permits separately '
+                     'and are not in this feed. Three facts about the city\'s data shape the '
+                     'figures. The city\'s register mixes every city department, so this report '
+                     'counts only the building scope — the residential, commercial, sub-permit, '
+                     'sign, and elevator families — and only permits standing in a status that '
+                     'proves issuance (issued, complete, expired, temporary occupancy, or final '
+                     'inspection passed); the finance, public-works, fire, truck-route, '
+                     'right-of-way, and other department families, and applications still in '
+                     'review, awaiting fees, void, or cancelled, are not counted. The feed '
+                     'publishes no contractor name, so none is shown. And the city\'s data '
+                     'reaches us in batches rather than day by day — the stamps above show the '
+                     'source\'s own dates, and the newest permits in a batch can run some weeks '
+                     'behind the calendar. Project values are the applicants\' stated '
+                     'valuations, printed as reported.</p>'),
+    },
     "il/cook": {
         "registry": "chicago-cook-il",
         "state_name": "Illinois", "state_abbr": "IL",

@@ -13,7 +13,7 @@ from trades import (classify_alachua_trade, classify_boston_trade, classify_br_t
                     classify_dekalb_trade,
                     classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
-                    classify_hillsborough_trade, classify_miami_trade, classify_marin_trade, classify_new_hanover_trade, classify_orlando_trade,
+                    classify_hillsborough_trade, classify_miami_trade, classify_marin_trade, classify_naperville_trade, classify_new_hanover_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
                     classify_raleigh_trade, classify_sa_trade,
                     classify_trade, classify_nyc_trade,
@@ -2120,6 +2120,112 @@ def normalize_new_hanover(raw, reg):
     }
 
 
+def _naperville_address(raw):
+    """Assemble the city's address parts into one printed address.
+
+    The city publishes an address as parts (STREETNUMBER,
+    PREDIRECTION, STREETNAME, STREETTYPE, UNITORSUITE). Parts are
+    joined in that order and the unit is appended as a unit suffix
+    only when the city states one. The city prints in all caps; the
+    assembled address is title-cased like the other counties'."""
+    parts = []
+    for f in ("STREETNUMBER", "PREDIRECTION", "STREETNAME", "STREETTYPE"):
+        v = _clean(raw.get(f))
+        if v:
+            parts.append(v)
+    addr = " ".join(parts)
+    unit = _clean(raw.get("UNITORSUITE"))
+    if unit:
+        addr = f"{addr} Unit {unit}" if addr else f"Unit {unit}"
+    if addr and addr.isupper():
+        addr = _title(addr)
+    return addr or None
+
+
+def normalize_naperville(raw, reg):
+    """One raw City of Naperville row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the PERMITNUMBER is exactly
+    unique in the scoped trailing-12-month window (2,878 rows =
+    2,878 distinct PERMITNUMBER before the status scope, measured
+    2026-11-24 on the live layer) — source_record_id = PERMITNUMBER,
+    no collapsing. The window is the ISSUEDATE window, bounded at
+    pull time to the trailing 12 months ending at pull (registry
+    pull_where_extra: ISSUEDATE <= CURRENT_TIMESTAMP) and scoped to
+    the building permit families standing in an issued-proven
+    status (the excluded department families and pre-issuance
+    statuses are named and counted in the registry
+    field_map.scope_filter — the Alachua/San Antonio treatment).
+    Privacy: the layer publishes NO contractor field and NO
+    person-name fields at all (full 22-field schema verified), and
+    PARCELNUMBER/TOWNSHIP are not requested; contractor stays NULL,
+    never inferred (a separate city contractors service exists and
+    is out of scope for this launch). Valuation: PERMITVALUATION
+    passed validation on the status-scoped window (registry
+    field_map.valuation — stated on 100% of permits, only 2 at
+    exactly $1, largest permit 4.9% of the sum), so values publish;
+    a reported $0 is kept as reported and only a null stays NULL.
+    Category comes from PERMITTYPE (RESIDENTIAL / RESIDENTIAL:
+    OTHER IMPROVEMENTS -> Residential, COMMERCIAL -> Commercial),
+    else from the work-class prefix (RESD -> Residential,
+    COMMERCIAL -> Commercial), else NULL. City publishes as
+    Naperville, the issuing jurisdiction (the feed's CITY field is
+    'NAPERVILLE' on most rows, null on some, and a rare
+    UNINCORPORATED/NAPERVILLE variant — the Austin/Seattle
+    treatment); the row's own ZIP is carried as published. Dates
+    arrive as ArcGIS epoch milliseconds. Status is the permit's
+    current lifecycle status, mapped through status_map with the
+    verbatim value kept in status_source; only post-issuance
+    statuses enter the population at all.
+    """
+    sid = _clean(raw.get("PERMITNUMBER"))
+    if not sid:
+        return None
+    ptype = _clean(raw.get("PERMITTYPE"))
+    wclass = _clean(raw.get("PERMITWORKCLASS"))
+    category = None
+    if ptype in ("RESIDENTIAL", "RESIDENTIAL: OTHER IMPROVEMENTS"):
+        category = "Residential"
+    elif ptype == "COMMERCIAL":
+        category = "Commercial"
+    elif wclass:
+        if wclass.upper().startswith("RESD"):
+            category = "Residential"
+        elif wclass.upper().startswith("COMMERCIAL"):
+            category = "Commercial"
+    zipc = raw.get("POSTALCODE")
+    if isinstance(zipc, float) and zipc.is_integer():
+        zipc = str(int(zipc))
+    elif isinstance(zipc, (int,)):
+        zipc = str(zipc)
+    status_src = _clean(raw.get("PERMITSTATUS"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": _naperville_address(raw),
+        "city": "Naperville",  # issuing jurisdiction (above)
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": _clean(zipc),
+        "permit_type": ptype,
+        "trade": classify_naperville_trade(raw.get("PERMITTYPE"),
+                                           raw.get("PERMITWORKCLASS"),
+                                           raw.get("DESCRIPTION")),
+        "category": category,
+        "project_description": _clean(raw.get("DESCRIPTION")),
+        "valuation": _num(raw.get("PERMITVALUATION")),
+        "status": status,
+        "status_source": status_src,
+        "application_date": _epoch_ms_date(raw.get("APPLYDATE")),
+        "issue_date": _epoch_ms_date(raw.get("ISSUEDATE")),
+        "source_updated_date": None,  # layer publishes no per-row load stamp
+        "contractor_name": None,  # layer publishes no contractor field (above)
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -2149,5 +2255,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "buffalo-erie-ny": normalize_buffalo,
                "marin-ca": normalize_marin,
                "alachua-fl": normalize_alachua,
-               "new-hanover-nc": normalize_new_hanover}
+               "new-hanover-nc": normalize_new_hanover,
+               "naperville-dupage-il": normalize_naperville}
 

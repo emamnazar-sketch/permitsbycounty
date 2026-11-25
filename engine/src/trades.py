@@ -1497,3 +1497,99 @@ def classify_new_hanover_trade(permit_type="", work_class="", description=""):
     if "FOUNDATION REPAIR" in d or "HELICAL PIER" in d:
         return "foundation"
     return "general"
+
+
+def classify_naperville_trade(permit_type="", work_class="", description=""):
+    """Naperville (City of Naperville Building_Permits_View) classification.
+
+    Two city signals come first, then the scope text:
+
+    * the permit family outright: ELEVATOR -> elevator (its window
+      rows are new-elevator installs and elevator modernization/
+      repair work), SIGN -> signage.
+    * the city's closed work-class vocabulary where it names the
+      work itself: PERMANENT SIGN / TEMPORARY SIGN -> signage;
+      NEW ELEVATOR -> elevator; RESD DEMOLITION / COMMERCIAL
+      BUILDING DEMOLITION -> demolition; SINGLE FAMILY HOME /
+      TOWNHOUSE / TOWNHOUSE UNITS / COMMERCIAL BUILDING - NEW OR
+      ADDITION / FOUNDATION ONLY -> new-construction (a
+      foundation-only permit here is the foundation of a new build,
+      the permit the build starts with); IN-GROUND / ABOVE-GROUND
+      POOL/SPA/HOT TUB -> pool; COMMERCIAL ROOFING/RTU/EXTERIOR
+      REPAIR -> roofing (the class is the city's roofing and
+      rooftop-unit family; its descriptions lead with re-roofs and
+      RTU replacements); RESD ELECTRIC VEHICLE CHARGING STATION ->
+      electrical.
+    * then a scope-text (DESCRIPTION) pass for the classes that mix
+      trades — the alteration, addition, deck, patio, driveway,
+      occupancy, and accessory families — in this order: explicit
+      new-dwelling signals only ('new single family', 'new home',
+      'new house', 'new dwelling', 'new townhouse', 'new townhome',
+      'new construction of') -> new-construction; solar ->
+      plumbing -> hvac -> electrical -> roofing -> fencing ->
+      pool -> signage (the word 'sign' word-bounded, so 'design'
+      and 'signed' never fire it).
+    * everything else -> general: driveways, sidewalks, decks,
+      patios, additions, and alterations naming no single licensed
+      trade — the honest bulk of this feed.
+
+    Simulated on a full audit pull of the scoped window before
+    build (2026-11-24, 2,834 rows; sim in
+    builder-naperville-classifier-sim.txt) and reproduced by
+    production: general 1,590 · new-construction 430 · signage 303 ·
+    electrical 172 · roofing 139 · plumbing 59 · pool 49 ·
+    elevator 46 · demolition 31 · hvac 9 · solar 4 · fencing 2.
+    (One deviation from the first sim draft: 'generator' was dropped
+    from the electrical keyword set — its only hits were generator
+    mentions on non-electrical work, e.g. a construction trailer
+    'power run off generator'; those two rows land in general.)
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    import re
+    pt = (permit_type or "").strip().upper()
+    wc = (work_class or "").strip().upper()
+    d = (description or "").lower()
+    if pt == "ELEVATOR":
+        return "elevator"
+    if pt == "SIGN":
+        return "signage"
+    if wc in ("PERMANENT SIGN", "TEMPORARY SIGN"):
+        return "signage"
+    if wc == "NEW ELEVATOR":
+        return "elevator"
+    if wc in ("RESD DEMOLITION", "COMMERCIAL BUILDING DEMOLITION"):
+        return "demolition"
+    if wc in ("SINGLE FAMILY HOME", "TOWNHOUSE", "TOWNHOUSE UNITS",
+              "COMMERCIAL BUILDING - NEW OR ADDITION", "FOUNDATION ONLY"):
+        return "new-construction"
+    if wc in ("IN-GROUND POOL/SPA/HOT TUB", "ABOVE-GROUND POOL/SPA/HOT TUB"):
+        return "pool"
+    if wc == "COMMERCIAL ROOFING/RTU/EXTERIOR REPAIR":
+        return "roofing"
+    if wc == "RESD ELECTRIC VEHICLE CHARGING STATION":
+        return "electrical"
+    if (re.search(r"\bnew (single.family|home|house|dwelling|townhouse|townhome)\b", d)
+            or "new construction of" in d):
+        return "new-construction"
+    if "solar" in d:
+        return "solar"
+    if _contains(d, ("plumbing", "water heater", "repipe", "repiping", "sewer")):
+        return "plumbing"
+    if _contains(d, ("hvac", "furnace", "air conditioning", "air conditioner",
+                     "ductwork", "rooftop unit")):
+        return "hvac"
+    if _contains(d, ("electrical", "electric service", "service upgrade",
+                     "panel upgrade", "ev charger", "ev charging")):
+        return "electrical"
+    if _contains(d, ("reroof", "re-roof", "roofing", "roof replacement",
+                     "shingle", "new roof", "replace roof", "tear off",
+                     "tear-off")):
+        return "roofing"
+    if "fence" in d or "fencing" in d:
+        return "fencing"
+    if re.search(r"\bpool\b", d):
+        return "pool"
+    if re.search(r"\bsigns?\b", d) or "signage" in d:
+        return "signage"
+    return "general"
