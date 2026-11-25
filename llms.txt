@@ -127,3 +127,4 @@ Site live at permitsbycounty.com. Live county reports: Cook County, Illinois (Ci
 - How can I track a competing builder's permits to see where they are building next? — https://permitsbycounty.com/blog/track-builder-permits-competitor-activity/
 - What permits do I need for a commercial tenant improvement in Austin? — https://permitsbycounty.com/blog/austin-commercial-tenant-improvement-permit/
 - How do demolition contractors find teardown jobs from demolition permits? — https://permitsbycounty.com/blog/demolition-permits-teardown-leads/
+- How can general contractors find busy subcontractors from permit records? — https://permitsbycounty.com/blog/find-subcontractors-from-building-permits/
