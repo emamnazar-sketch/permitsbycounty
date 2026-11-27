@@ -25,6 +25,16 @@ from trades import (classify_alachua_trade, classify_boston_trade, classify_br_t
 # the feed's placeholder text — see normalize_nyc).
 _JOB_NUMBER_RE = re.compile(r"^[A-Z]\d{8}-[A-Z]\d+$")
 
+# The DOB NOW feed's placeholder identity pair: a renewal issuance whose
+# real job filing number DOB did not carry into the feed arrives with
+# job_filing_number 'Permit is no' and work_permit 'Permit is not yet
+# issued'. These two literals are the exact fingerprint of the
+# FINGERPRINT-ONLY substitute identity rule in normalize_nyc
+# (Amam-approved 2026-11-27; full rule + audit evidence in the NYC
+# registries' dedupe_rule / fingerprint_identity_rule_2026_11_27).
+NYC_PLACEHOLDER_JOB = "Permit is no"
+NYC_PLACEHOLDER_PERMIT = "Permit is not yet issued"
+
 
 def _clean(v):
     if v is None:
@@ -288,6 +298,18 @@ def normalize_nyc(raw, reg):
     window). Identity (registry dedupe_rule): one permit = one
     (job_filing_number, tracking_number) issuance event; permit_number is
     the work_permit slot number, which recurs across the slot's issuances.
+    Sole exception — the FINGERPRINT-ONLY substitute identity
+    (Amam-approved 2026-11-27): an event whose only identity defect is the
+    feed's placeholder pair (job_filing_number 'Permit is no' +
+    work_permit 'Permit is not yet issued') is admitted under the
+    substitute identity 'PERMITNO-<tracking_number>' — but only when the
+    pipeline's per-run guard has verified that the event's tracking_number
+    serves exactly one event in this borough's pull and annotated the
+    event with `_fingerprint_identity` (see pipeline.apply_fingerprint_
+    identity). tracking_number is NOT an identity in general (within-
+    borough uniqueness audit FAILED 2026-11-27: Kings 10 / Queens 3 /
+    Bronx 1 numbers serving 2 events), so without the guard's annotation
+    the placeholder event is held exactly as before.
     Privacy: the pull is column-restricted by the registry pull_select —
     applicant person-name fields, filing-representative fields, and owner
     fields are never requested from the API at all. The only name carried
@@ -300,10 +322,23 @@ def normalize_nyc(raw, reg):
     """
     job = _clean(raw.get("job_filing_number"))
     tracking = _clean(raw.get("tracking_number"))
-    if not job or not tracking or not _JOB_NUMBER_RE.match(job):
+    if job and tracking and _JOB_NUMBER_RE.match(job):
+        source_id = f"{job}|{tracking}"
+    elif (job == NYC_PLACEHOLDER_JOB and tracking
+          and _clean(raw.get("work_permit")) == NYC_PLACEHOLDER_PERMIT
+          and raw.get("_fingerprint_identity")):
+        # FINGERPRINT-ONLY substitute identity (Amam-approved 2026-11-27).
+        # The pipeline sets `_fingerprint_identity` only after its guard
+        # verifies the event's tracking_number serves exactly one event in
+        # this borough's pull; the key is namespaced to the fingerprint so
+        # it can never collide with, or be mistaken for, a real identity.
+        source_id = raw["_fingerprint_identity"]
+    else:
         # No real source identity: the feed's placeholder job number
-        # ('Permit is no', work_permit 'Permit is not yet issued') names 4
-        # window events. Held, reported, never published (registry rule).
+        # ('Permit is no', work_permit 'Permit is not yet issued') names a
+        # few window events; without the guard's annotation they are held,
+        # reported, never published (registry rule) — as is any other
+        # record that fails the identity checks above.
         return None
     parts = [_clean(raw.get("house_no")), _clean(raw.get("street_name"))]
     address = " ".join(p for p in parts if p)
@@ -319,7 +354,7 @@ def normalize_nyc(raw, reg):
     work_types = [str(w).strip() for w in raw.get("_work_types", []) if w]
     valuation = _num(raw.get("estimated_job_costs")) if raw.get("_valuation_event") else None
     return {
-        "source_record_id": f"{job}|{tracking}",
+        "source_record_id": source_id,
         "permit_number": _clean(raw.get("work_permit")),
         "address": address,
         "city": reg["borough_pull"]["borough_variants"][0],

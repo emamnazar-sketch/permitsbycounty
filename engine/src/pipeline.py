@@ -165,6 +165,60 @@ def collapse_event_stream(stream, cfg):
     return events, stats
 
 
+def _clean_str(v):
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
+def apply_fingerprint_identity(stream, reg):
+    """FINGERPRINT-ONLY substitute identities for NYC DOB NOW collapsed
+    events (Amam-approved 2026-11-27; the full rule + audit evidence live
+    in the NYC registries' dedupe_rule / fingerprint_identity_rule_
+    2026_11_27).
+
+    A collapsed event whose ONLY identity defect is the feed's placeholder
+    pair (job_filing_number 'Permit is no' + work_permit 'Permit is not
+    yet issued') may be admitted under a substitute identity namespaced to
+    that fingerprint, keyed by its tracking_number:
+    'PERMITNO-<tracking_number>' — stable across refreshes, so the event
+    dedupes/updates nightly like any real identity.
+
+    tracking_number is NOT an identity in general — the 2026-11-27 audit
+    measured within-borough collisions (Kings 10 / Queens 3 / Bronx 1
+    tracking numbers each serving 2 unrelated events) — so the guard is
+    part of the rule, re-run on every pull: the substitute is granted
+    only when the event's tracking_number serves exactly ONE event in
+    this borough's current pull. If it ever serves 2+, the annotation is
+    withheld, the normalizer holds the event (blocking the county exactly
+    as before this rule), and the refusal is returned for loud logging.
+    There is no silent fallback.
+
+    Annotates admitted events in place with `_fingerprint_identity`.
+    Returns (admitted_tracking_numbers, guard_tripped_lines).
+    """
+    counts = Counter()
+    for raw, _ref in stream:
+        t = _clean_str(raw.get("tracking_number"))
+        if t:
+            counts[t] += 1
+    admitted, tripped = [], []
+    for raw, _ref in stream:
+        if (_clean_str(raw.get("job_filing_number")) == nz.NYC_PLACEHOLDER_JOB
+                and _clean_str(raw.get("work_permit")) == nz.NYC_PLACEHOLDER_PERMIT):
+            t = _clean_str(raw.get("tracking_number"))
+            k = counts.get(t, 0) if t else 0
+            if t and k == 1:
+                raw["_fingerprint_identity"] = f"PERMITNO-{t}"
+                admitted.append(t)
+            else:
+                tripped.append(
+                    f"FINGERPRINT-GUARD-TRIPPED: {reg['county']} tracking {t} "
+                    f"now serves {k} events — substitute identity refused")
+    return admitted, tripped
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--registry", required=True)
@@ -307,6 +361,19 @@ def main():
         stream, collapse_stats = collapse_event_stream(stream, reg["collapse_events"])
         report["collapse"] = collapse_stats
         print(f"collapse: {collapse_stats}")
+    # FINGERPRINT-ONLY substitute identities (NYC; see
+    # apply_fingerprint_identity). Counted separately in every run report
+    # as FINGERPRINT-IDENTITY — never merged silently into normal counts.
+    report["fingerprint_identity"] = 0
+    report["fingerprint_guard_tripped"] = []
+    if reg.get("collapse_events"):
+        fp_admitted, fp_tripped = apply_fingerprint_identity(stream, reg)
+        report["fingerprint_identity"] = len(fp_admitted)
+        report["fingerprint_guard_tripped"] = fp_tripped
+        for line in fp_tripped:
+            print(line)
+        if fp_admitted:
+            print(f"FINGERPRINT-IDENTITY: {len(fp_admitted)}")
     accepted, held, seen = [], [], set()
     dupes = 0
     raw_total = manifest["total_rows"]  # raw rows; accepted/held count events when collapsed
@@ -402,7 +469,8 @@ def main():
     with open(out_path, "w") as fh:
         json.dump(report, fh, indent=1, default=str)
     print(json.dumps({k: report[k] for k in ("pulled_rows", "accepted", "held", "hold_reasons",
-                                             "gate5_freshness")}, indent=1, default=str))
+                                             "gate5_freshness", "fingerprint_identity",
+                                             "fingerprint_guard_tripped")}, indent=1, default=str))
     print("gate4:", report["gate4_volume"])
     print("db:", json.dumps(report["db_counts"], default=str)[:800])
     print("report:", out_path)
