@@ -1593,3 +1593,92 @@ def classify_naperville_trade(permit_type="", work_class="", description=""):
     if re.search(r"\bsigns?\b", d) or "signage" in d:
         return "signage"
     return "general"
+
+
+def classify_asheville_trade(category="", record_type="", type_type="",
+                             subtype="", description=""):
+    """Asheville (City of Asheville AccelaPermitsView) classification.
+
+    The city's own type hierarchy comes first, then the scope text:
+
+    * the demolition subtype, or a demo/demolition permit type ->
+      demolition;
+    * the Sign class, or a sign permit type -> signage;
+    * the fire-construction categories and types (Fire Alarm,
+      Sprinkler System, Hood Suppression, ERRC radio booster) ->
+      fire-protection (the city's Fire: Operational permits are
+      operational, not construction trade work, and stay general);
+    * the named trade categories outright: Solar Array -> solar,
+      Reroof -> roofing, Electrical and Low Voltage Electrical ->
+      electrical, Plumbing -> plumbing, Gas Piping -> gas,
+      Mechanical -> hvac; the Multi-Trade Heating permit types ->
+      hvac; Swimming Pool category -> pool;
+    * the city's own New Building subtype -> new-construction;
+    * then a scope-text pass for the alteration and multi-trade
+      families: helical piers / foundation repair -> foundation,
+      then solar -> plumbing -> hvac -> electrical -> roofing ->
+      pool keyword passes (the Naperville order);
+    * everything else -> general: alterations, additions, decks,
+      retaining walls, site work, floodplain, occupancy, event and
+      vendor permits naming no single licensed trade.
+
+    Simulated on the coordinator's full scoped-window audit pull
+    before build (2026-11-26, 2,985 rows; sim in
+    asheville-classifier-sim.txt) and reproduced by production:
+    general 1,277 · electrical 332 · plumbing 310 · hvac 211 ·
+    new-construction 198 · signage 185 · fire-protection 162 ·
+    demolition 122 · solar 93 · roofing 57 · gas 15 ·
+    foundation 14 · pool 9.
+    Deterministic; first match wins; kept separate so other counties
+    cannot be disturbed.
+    """
+    c = (category or "").strip()
+    t = (record_type or "").strip()
+    tt = (type_type or "").strip()
+    st = (subtype or "").strip()
+    d = (description or "").lower()
+    tl = t.lower()
+    if st == "Demolition" or "demo" in tl:
+        return "demolition"
+    if tt == "Sign" or "sign" in tl:
+        return "signage"
+    if c in ("Fire Alarm", "Sprinkler System", "Hood Suppression",
+             "ERRC (Radio Booster)") or t in (
+             "Fire Alarm", "Sprinkler Sys.", "Fire: Hood Sys.",
+             "Fire: ERRC (Radio Booster)"):
+        return "fire-protection"
+    if c == "Solar Array" or "solar" in tl:
+        return "solar"
+    if c == "Reroof" or "reroof" in tl:
+        return "roofing"
+    if c in ("Electrical", "Low Voltage Electrical"):
+        return "electrical"
+    if c == "Plumbing":
+        return "plumbing"
+    if c == "Gas Piping":
+        return "gas"
+    if c == "Mechanical" or "multi-trade heating" in tl:
+        return "hvac"
+    if c == "Swimming Pool":
+        return "pool"
+    if st == "New Building":
+        return "new-construction"
+    if "helical pier" in d or "foundation repair" in d:
+        return "foundation"
+    if "solar" in d:
+        return "solar"
+    if _contains(d, ("plumbing", "water heater", "repipe", "sewer")):
+        return "plumbing"
+    if _contains(d, ("hvac", "furnace", "air conditioning",
+                     "air conditioner", "heat pump", "ductwork")):
+        return "hvac"
+    if _contains(d, ("electrical", "electric service", "service upgrade",
+                     "panel upgrade", "ev charger", "ev charging",
+                     "generator")):
+        return "electrical"
+    if _contains(d, ("reroof", "re-roof", "roof replacement", "new roof",
+                     "replace roof", "shingle")):
+        return "roofing"
+    if "swimming pool" in d:
+        return "pool"
+    return "general"

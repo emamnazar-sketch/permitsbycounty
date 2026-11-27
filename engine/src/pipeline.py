@@ -173,7 +173,7 @@ def main():
                     choices=["application_start_date", "applieddate", "issue_date", "issued_date",
                              "issueddate", "permitissuedate", "DATE ISSUED", "File_Date", "issued",
                              "issue_permit_date", "ISSUED_DATE", "issuedDateTime", "ISSUED_DT",
-                             "ISSUE_DATE"],
+                             "ISSUE_DATE", "date_opened"],
                     help="date field the backfill window is keyed on "
                          "(field name is per-source, from the registry field_map)")
     args = ap.parse_args()
@@ -344,7 +344,7 @@ def main():
     report["gate4_volume"] = {"count_match": {"expected": exp, "pulled": manifest["total_rows"],
                                               "drift": drift, "verdict": "PASS" if count_ok else "HELD"}}
     base_ok = True
-    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date", "issued", "issue_permit_date", "ISSUED_DATE", "issuedDateTime", "ISSUED_DT", "ISSUE_DATE", "issued"):
+    if args.field in ("application_start_date", "applieddate", "issue_date", "issued_date", "issueddate", "permitissuedate", "DATE ISSUED", "File_Date", "issued", "issue_permit_date", "ISSUED_DATE", "issuedDateTime", "ISSUED_DT", "ISSUE_DATE", "issued", "date_opened"):
         expected = reg["qa_thresholds"].get("backfill_expected_volume_12mo")
         if expected:
             tol = reg["qa_thresholds"].get("backfill_volume_tolerance", 0.25)

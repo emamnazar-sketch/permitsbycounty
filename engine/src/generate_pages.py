@@ -688,6 +688,50 @@ CFG = {
                      'reported: identical buildings in one development can state the same '
                      'estimated cost on each of their permits.</p>'),
     },
+    "nc/buncombe": {
+        "registry": "asheville-buncombe-nc",
+        "state_name": "North Carolina", "state_abbr": "NC",
+        "county_name": "Buncombe County", "crumb_county": "Buncombe County, North Carolina",
+        "h1": "Building Permits in Buncombe County, North Carolina",
+        "city": "Asheville",
+        "source_short": "City of Asheville",
+        "source_line": "City of Asheville open data — Accela permits issued by the City of Asheville",
+        "creator": "City of Asheville",
+        "cite_place": "Buncombe County (Asheville)",
+        "noun": "building permits", "noun_singular": "building permit",
+        # Asheville's job_value is blank or zero on effectively every
+        # record (registry field_map.valuation — > 0 on 3 of 66,667
+        # all-time and 0 of 2,985 scoped), so it is never pulled and
+        # the county runs counts-only by construction (the New
+        # Hanover treatment): the normalizer carries no valuation.
+        "show_valuation": False, "show_category": True,
+        "category_note": ("Category is the City of Asheville's own class for each permit "
+                          "(Residential / Commercial); permits in the city's other "
+                          "classes carry no category."),
+        "window_start": "2025-11-26",
+        "lede_hub": ("Every building permit issued by the City of Asheville — counted and "
+                     "sorted by trade, category, and month. Free, and updated nightly."),
+        "coverage": ('<p class="note">Coverage: this report covers building permits issued by the '
+                     '<strong>City of Asheville</strong>. Buncombe County\'s own permits for the '
+                     'unincorporated county have no published feed, and the county\'s other towns '
+                     'publish separately, so totals here are City of Asheville totals — labeled '
+                     'as such, never blended. Three facts about the city\'s data shape the '
+                     'figures. The city publishes no true issue date, so this report counts only '
+                     'permits standing in a status that proves issuance (issued, certificate '
+                     'issued, finaled, reissued, closed after issuance, expired, or temporary '
+                     'certificate issued), by the month each permit was opened — applications '
+                     'still in review, awaiting the applicant or payment, revoked, or denied are '
+                     'not counted, and recent months grow as opened applications reach an issued '
+                     'status. Record types that authorize no building work — short-term home '
+                     'stays, sound exceedance, and temporary publishing permits (34 opened in the '
+                     'last 12 months) — are not counted either. And the city\'s stated job value '
+                     'is blank or zero on effectively every record (a value above zero appears '
+                     'on 3 of 66,667 records), so this report publishes permit counts, trades, '
+                     'and monthly volumes only. The register\'s record-name field often names a '
+                     'person and is never pulled; a business name is shown only where the '
+                     'city\'s published business name carries a business signal, and '
+                     'individual-looking names are dropped, never printed as a contractor.</p>'),
+    },
     "fl/miami-dade": {
         "registry": "miami-dade-fl",
         "state_name": "Florida", "state_abbr": "FL",
@@ -1668,6 +1712,9 @@ GUIDE_LINKS = {
         ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
     ],
     "nc/new-hanover": [
+        ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
+    ],
+    "nc/buncombe": [
         ("How many new homes are coming to the counties where I deliver?", "how-many-new-homes-coming-to-your-counties"),
     ],
     "oh/cuyahoga": [

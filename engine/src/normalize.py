@@ -13,6 +13,7 @@ from trades import (classify_alachua_trade, classify_boston_trade, classify_br_t
                     classify_dekalb_trade,
                     classify_detroit_trade, classify_la_trade,
                     classify_fort_worth_trade,
+                    classify_asheville_trade,
                     classify_hillsborough_trade, classify_miami_trade, classify_marin_trade, classify_naperville_trade, classify_new_hanover_trade, classify_orlando_trade,
                     classify_philly_trade, classify_pittsburgh_trade,
                     classify_raleigh_trade, classify_sa_trade,
@@ -2226,6 +2227,140 @@ def normalize_naperville(raw, reg):
     }
 
 
+_ASHEVILLE_BIZ_LEGAL = ("LLC", "L.L.C", "INC", "CORP", "PARTNERSHIP",
+                        "LLP", "COMPANY", "DBA", "AKA")
+_ASHEVILLE_BIZ_KEYWORDS = set(
+    "COMMERCIAL CARPENTRY DECKING EQUIPMENT DIRT DEMO DEMOLITION DRILLING "
+    "BLASTING COMM FOUNDATIONS FOUNDATION CARPENTER METALWORK LANDSCAPE "
+    "LANDSCAPING EARTHWORKS WOODWORKING ADVERTISING ALUMINUM CORPORATION "
+    "NETWORK NETWORKS COMMUNICATIONS CRAFTSMAN CRAFT CUSTOM BUILD GAS PLUMB "
+    "PLUMBERS PLUMBING ELECTRIC ELECTRICAL ELECTRICIAN HEATING AIR HVAC "
+    "MECHANICAL CONSTRUCTION BUILDERS BUILDER BUILT BUILDS BUILDING HOMES "
+    "HOME PROPERTIES PROPERTY DESIGN DESIGNS ENERGY SOLAR RESTORATION "
+    "REMODELING CONTRACTING ENTERPRISES INDUSTRIES SERVICES SERVICE GROUP "
+    "SOLUTIONS SYSTEMS TECHNOLOGIES TECHNOLOGY ROOFING FIRE GENERAL TREE "
+    "PAINTING FLOORING EXCAVATING GRADING FENCE FENCING POOL POOLS SIGN "
+    "SIGNS GLASS DOOR DOORS WINDOWS CONCRETE MASONRY DRYWALL INSULATION "
+    "SEPTIC WELL ENVIRONMENTAL MANAGEMENT DEVELOPMENT REALTY RENTALS "
+    "APARTMENTS HOTEL MOTEL RESORT CHURCH SCHOOL UNIVERSITY HOSPITAL "
+    "COUNTY CITY STATE CLUB ASSOCIATION SOCIETY CENTER CENTRE STUDIO "
+    "GALLERY CAFE RESTAURANT BREWING BAKERY MARKET STORE SHOP SALON "
+    "FITNESS YOGA CLINIC DENTAL MEDICAL OFFICE BANK INSURANCE AUTO TIRE "
+    "FARMS FARM RANCH LODGE INN SUITES VILLAGE MANOR ESTATES COMMUNITY "
+    "NEIGHBORHOOD HANDYMAN WORKS LABS PARTNERS BROTHERS SONS FAMILY TEAM "
+    "PROS EXPERTS SPECIALISTS MAINTENANCE REPAIR INSTALLATION CREATIONS "
+    "CONCEPTS WOOD STONE METAL IRON TILE CARPET HARDWOOD DECK DECKS PATIOS "
+    "OUTDOOR LIVING SPACES ENVIRONMENTS RENOVATIONS RENOVATION IMPROVEMENTS "
+    "IMPROVEMENT INTERIORS EXTERIORS ARCHITECTURE ENGINEERING SURVEYING "
+    "CONSULTING CONSULTANTS LOGISTICS TRANSPORT TRUCKING MOVING STORAGE "
+    "CLEANING PEST SECURITY ALARM SPRINKLER ELEVATOR APPLIANCE "
+    "REFRIGERATION GENERATOR POWER WATER SEWER DRAIN PUMP CHIMNEY GUTTER "
+    "SIDING AWNING BLINDS SHUTTERS GARAGE OVERHEAD WELDING FABRICATION "
+    "MILLWORK CABINET COUNTERTOP GRANITE MARBLE QUARTZ LIGHTING AUDIO "
+    "VIDEO FIBER WIRELESS CELLULAR VOLTAGE ELECTRO AND".split())
+
+
+def _asheville_business_name(v):
+    """Carry the city's published business_name only when it carries a
+    business signal (registry field_map.contractor_rule): a legal-form
+    marker, a trade/business keyword, an ampersand/slash/digit, a
+    trailing CO., or a single-token trade name. A plain multi-word name
+    with no signal reads as an individual and is dropped to NULL —
+    the register's applicants include licensed sole operators filing
+    under their own names, and a person name is never published as a
+    contractor. Deliberately conservative (see the registry rule)."""
+    s = _clean(v)
+    if not s:
+        return None
+    u = s.upper()
+    if any(k in u for k in _ASHEVILLE_BIZ_LEGAL):
+        return s
+    toks = re.findall(r"[A-Z]+", u)
+    if toks and toks[-1] == "CO":
+        return s
+    if any(t in _ASHEVILLE_BIZ_KEYWORDS for t in toks):
+        return s
+    if "&" in u or "/" in u or any(ch.isdigit() for ch in u):
+        return s
+    if len(toks) <= 1:
+        return s
+    return None
+
+
+def normalize_asheville(raw, reg):
+    """One raw City of Asheville row -> standard record dict (or None).
+
+    Identity (registry dedupe_rule): the record_id is exactly unique
+    in the scoped trailing-12-month window (2,985 rows = 2,985
+    distinct record_id, measured 2026-11-26 on a full audit pull) —
+    source_record_id = record_id, no collapsing. Population (registry
+    pull_where_extra): only permits standing in an issued-proven
+    status are pulled, and the non-building record types (Home Stay,
+    Sound Exceedance, TempPub categories) are excluded at pull — the
+    excluded statuses and categories are named in the registry
+    field_map.scope_filter. Dates: the feed publishes NO issuance
+    date, so issue_date carries date_opened — the permit's opened
+    month — under the definition printed on the hub, Data Sources,
+    and llms.txt (the Fort Worth treatment); application_date is the
+    same opened date. Privacy: the pull is column-restricted by the
+    registry pull_select — record_name (often a PERSON name) is never
+    requested from the API at all; the only name carried is
+    business_name, and only when it carries a business signal
+    (_asheville_business_name — 2,108 of 2,211 stated values carried
+    at build, 103 individual-looking values dropped to NULL).
+    Valuation: counts-only by construction — job_value is > 0 on 0 of
+    2,985 scoped records and is not requested in pull_select at all,
+    so valuation stays NULL and no dollar figure is published.
+    Category comes from record_type_type (Residential / Commercial;
+    every other class stays NULL). City publishes as Asheville, the
+    issuing jurisdiction; the ZIP is read from the tail of the city's
+    own printed address. Dates arrive as ArcGIS epoch milliseconds.
+    Status is the permit's current lifecycle status, mapped through
+    status_map with the verbatim value kept in status_source; only
+    issued-proven statuses enter the population at all.
+    """
+    sid = _clean(raw.get("record_id"))
+    if not sid:
+        return None
+    address = _clean(raw.get("address"))
+    zipc = None
+    if address:
+        m = re.search(r"(\d{5})(?:-\d{4})?\s*$", address)
+        if m:
+            zipc = m.group(1)
+    ttype = _clean(raw.get("record_type_type"))
+    category = ttype if ttype in ("Residential", "Commercial") else None
+    status_src = _clean(raw.get("record_status"))
+    status = reg["status_map"].get(status_src.upper(), "not-stated") if status_src else "not-stated"
+    opened = _epoch_ms_date(raw.get("date_opened"))
+    return {
+        "source_record_id": sid,
+        "permit_number": sid,
+        "address": address,
+        "city": "Asheville",  # issuing jurisdiction
+        "county": reg["county"],
+        "state": reg["state"],
+        "zip": zipc,
+        "permit_type": _clean(raw.get("record_type")),
+        "trade": classify_asheville_trade(raw.get("record_type_category"),
+                                          raw.get("record_type"),
+                                          raw.get("record_type_type"),
+                                          raw.get("record_type_subtype"),
+                                          raw.get("description")),
+        "category": category,
+        "project_description": _clean(raw.get("description")),
+        "valuation": None,  # counts-only by construction (above)
+        "status": status,
+        "status_source": status_src,
+        "application_date": opened,
+        "issue_date": opened,  # the feed's opened date — see docstring
+        "source_updated_date": _epoch_ms_date(raw.get("record_status_date")),
+        "contractor_name": _asheville_business_name(raw.get("business_name")),
+        "source_name": reg["source_name"],
+        "source_url": reg["source_url"],
+    }
+
+
 NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "austin-travis-tx": normalize_austin,
                "san-francisco-ca": normalize_sf,
@@ -2256,5 +2391,6 @@ NORMALIZERS = {"chicago-cook-il": normalize_chicago,
                "marin-ca": normalize_marin,
                "alachua-fl": normalize_alachua,
                "new-hanover-nc": normalize_new_hanover,
-               "naperville-dupage-il": normalize_naperville}
+               "naperville-dupage-il": normalize_naperville,
+               "asheville-buncombe-nc": normalize_asheville}
 
